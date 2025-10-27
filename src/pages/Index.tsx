@@ -132,13 +132,13 @@ const Index = () => {
           <div className="container mx-auto px-4 py-20 relative z-10">
             <div className="max-w-2xl space-y-8 animate-fade-in">
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                Fresh Chicken,
+                Fresh Chicken in Dibrugarh —
                 <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mt-2">
-                  Delivered Fast!
+                  Delivered Fast to Your Doorstep
                 </span>
               </h1>
               <p className="text-xl md:text-2xl text-foreground/80 leading-relaxed">
-                Premium quality chicken delivered to your doorstep in under 2 hours. Fresh, cleaned, and ready to cook.
+                Premium quality chicken delivered across Dibrugarh in under 2 hours. Fresh, affordable, and ready to cook — order online for home delivery.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link to="/menu">
