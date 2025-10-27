@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloud Chicken - Fresh Chicken Delivered in 2 Hours</title>
+    <meta name="description" content="Premium quality fresh chicken delivered to your doorstep in under 2 hours. Browse our wide selection of chicken cuts, order online, and enjoy fast delivery." />
+    <meta name="author" content="Cloud Chicken" />
+
+    <meta property="og:title" content="Cloud Chicken - Fresh Chicken Home Delivery" />
+    <meta property="og:description" content="Get fresh, premium quality chicken delivered in under 2 hours. Order now from Cloud Chicken!" />
+    <meta property="og:type" content="website" />
+    <!-- Open graph / twitter meta removed (previously referenced lovable.dev). -->
+
+    <!-- Favicon loader: prefer an assets favicon if present, otherwise fall back to a brown SVG with 'CC' letters. -->
+    <script>
+      (async function(){
+        const candidates = ['/src/assets/favicon.png','/assets/favicon.png','/favicon.png'];
+        let found = null;
+        for (const url of candidates){
+          try {
+            const res = await fetch(url, { method: 'HEAD' });
+            if (res.ok) { found = url; break; }
+          } catch (e) { /* ignore */ }
+        }
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        if (found) {
+          link.href = found;
+        } else {
+          const svg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="#5C2E00"/><text x="50%" y="50%" font-size="36" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central" font-family="Arial, Helvetica, sans-serif">CC</text></svg>');
+          link.href = 'data:image/svg+xml;utf8,' + svg;
+        }
+        document.head.appendChild(link);
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
