@@ -3,7 +3,8 @@ const path = require('path');
 
 const src = path.join(__dirname, '..', 'src', 'assets', 'favicon.png');
 const destDir = path.join(__dirname, '..', 'public');
-const dest = path.join(destDir, 'favicon.png');
+const destPng = path.join(destDir, 'favicon.png');
+const destIco = path.join(destDir, 'favicon.ico');
 
 if (!fs.existsSync(src)) {
   console.warn('Source favicon not found at', src);
@@ -11,5 +12,11 @@ if (!fs.existsSync(src)) {
 }
 
 if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-fs.copyFileSync(src, dest);
-console.log('Copied favicon from', src, 'to', dest);
+fs.copyFileSync(src, destPng);
+// Also copy to favicon.ico to overwrite any previous ICO (some browsers request /favicon.ico early)
+try {
+  fs.copyFileSync(src, destIco);
+} catch (e) {
+  // non-fatal
+}
+console.log('Copied favicon from', src, 'to', destPng, 'and', destIco);
