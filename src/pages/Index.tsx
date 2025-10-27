@@ -5,6 +5,7 @@ import { CheckCircle, Clock, ShieldCheck, Truck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '@/contexts/AuthContext';
 import heroImage from "@/assets/hero-chicken.jpg";
+import Meta from '@/components/Meta';
 import { useEffect, useState } from 'react';
 import OrderProgress from '@/components/OrderProgress';
 import { getAppSetting, getMetric } from '@/lib/settings';
@@ -106,6 +107,13 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
+      <Meta
+        title={`Fresh Chicken Delivery in India — Cloud Chicken`}
+        description={`Order fresh chicken online for fast home delivery. Affordable prices for whole chicken, breasts, and butchered cuts. Delivery in under 2 hours.`}
+        url={`https://cloudchicken.in/`}
+        image={`https://cloudchicken.in/src/assets/hero-chicken.jpg`}
+        keywords={`chicken near me, fresh chicken delivery, cheap chicken near me, buy chicken online, chicken delivery`}
+      />
       
       <main className="flex-1">
         {/* Hero Section */}

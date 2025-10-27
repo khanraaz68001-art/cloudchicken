@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ShoppingCart, Plus, Minus, Package, Star, Filter } from "lucide-react";
+import Meta from '@/components/Meta';
 
 interface ProductCategory {
   id: string;
@@ -531,6 +532,13 @@ const EcommerceMenu = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Meta
+        title={`Order Fresh Chicken Online — Menu | Cloud Chicken`}
+        description={`Browse our menu of fresh chicken cuts and products. Fast home delivery, competitive prices, and hygienic handling.`}
+        url={`https://cloudchicken.in/menu`}
+        image={`https://cloudchicken.in/src/assets/hero-chicken.jpg`}
+        keywords={`buy chicken online, chicken delivery, chicken breast online, whole chicken delivery`}
+      />
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
