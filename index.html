@@ -40,10 +40,12 @@
       }
     </script>
 
+    <!-- Static favicon fallback (public/favicon.ico) - ensures browsers get a favicon immediately. -->
+    <link rel="icon" href="/favicon.ico" />
     <!-- Favicon loader: prefer an assets favicon if present, otherwise fall back to a brown SVG with 'CC' letters. -->
     <script>
       (async function(){
-        const candidates = ['/src/assets/favicon.png','/assets/favicon.png','/favicon.png'];
+        const candidates = ['/favicon.png','/favicon.ico','/assets/favicon.png','/src/assets/favicon.png'];
         let found = null;
         for (const url of candidates){
           try {
