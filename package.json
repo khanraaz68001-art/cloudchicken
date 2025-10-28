@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
   "dev": "vite",
-  "prebuild": "node ./scripts/copy-favicon.js",
+  "prebuild": "node ./scripts/copy-favicon.mjs",
   "build": "vite build",
-  "postbuild": "node ./scripts/generate-sitemap.js && node ./scripts/spa-fallback.js",
+  "postbuild": "node ./scripts/generate-sitemap.mjs && node ./scripts/spa-fallback.mjs",
   "build:dev": "vite build --mode development",
   "lint": "eslint .",
   "preview": "vite preview",
-  "generate-sitemap": "node ./scripts/generate-sitemap.js"
+  "generate-sitemap": "node ./scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
