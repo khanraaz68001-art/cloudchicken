@@ -7,7 +7,7 @@
   "dev": "vite",
   "prebuild": "node ./scripts/copy-favicon.js",
   "build": "vite build",
-  "postbuild": "node ./scripts/generate-sitemap.js",
+  "postbuild": "node ./scripts/generate-sitemap.js && node ./scripts/spa-fallback.js",
   "build:dev": "vite build --mode development",
   "lint": "eslint .",
   "preview": "vite preview",
