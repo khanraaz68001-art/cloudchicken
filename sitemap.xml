@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Homepage - Highest priority, updated frequently -->
+  <url>
+    <loc>https://cloudchicken.in/</loc>
+    <lastmod>2025-10-30T13:44:14+00:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Menu page - High priority for food delivery business -->
+  <url>
+    <loc>https://cloudchicken.in/menu</loc>
+    <lastmod>2025-10-30T13:44:14+00:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- User authentication pages -->
+  <url>
+    <loc>https://cloudchicken.in/login</loc>
+    <lastmod>2025-10-30T13:44:14+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://cloudchicken.in/signup</loc>
+    <lastmod>2025-10-30T13:44:14+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Cart page - Important for conversions -->
+  <url>
+    <loc>https://cloudchicken.in/cart</loc>
+    <lastmod>2025-10-30T13:44:14+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <!-- Legal and company info pages -->
+  <url>
+    <loc>https://cloudchicken.in/about</loc>
+    <lastmod>2025-10-30T13:44:14+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://cloudchicken.in/privacy</loc>
+    <lastmod>2025-10-30T13:44:14+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <url>
+    <loc>https://cloudchicken.in/terms</loc>
+    <lastmod>2025-10-30T13:44:14+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>
