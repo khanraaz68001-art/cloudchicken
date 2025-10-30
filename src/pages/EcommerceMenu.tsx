@@ -23,6 +23,16 @@ interface ProductCategory {
   is_active: boolean;
 }
 
+interface PricingTier {
+  id: string;
+  weight_kg: number;
+  price_total: number;
+  price_per_kg: number;
+  tier_name?: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
 interface Product {
   id: string;
   category_id: string;
@@ -33,6 +43,7 @@ interface Product {
   image_base64?: string | null;
   image_mime?: string | null;
   is_available: boolean;
+  pricing_tiers?: PricingTier[];
   product_categories?: {
     name: string;
   };
@@ -293,11 +304,11 @@ const EcommerceMenu = () => {
   const fetchProducts = async () => {
     setProductsLoading(true);
     try {
-      // Prefer the `products_with_image` view which includes base64/mime fields
+      // Prefer the `products_with_pricing_tiers` view which includes pricing tiers and image fields
       try {
         const { data, error } = await supabase
-          .from('products_with_image')
-          .select(`*, product_categories (name)`)
+          .from('products_with_pricing_tiers')
+          .select(`*`)
           .eq('is_available', true)
           .order('sort_order', { ascending: true });
 
@@ -307,8 +318,24 @@ const EcommerceMenu = () => {
           return;
         }
       } catch (err) {
-        // view may not exist in all environments, fall back to products table
-        console.warn('products_with_image view not available, falling back', err);
+        // view may not exist in all environments, fall back to products_with_image view
+        console.warn('products_with_pricing_tiers view not available, falling back', err);
+        try {
+          const { data, error } = await supabase
+            .from('products_with_image')
+            .select(`*, product_categories (name)`)
+            .eq('is_available', true)
+            .order('sort_order', { ascending: true });
+
+          if (!error && data) {
+            setProducts(data || []);
+            try { sessionStorage.setItem('cloudcoop_products', JSON.stringify(data || [])); } catch (e) {}
+            return;
+          }
+        } catch (err2) {
+          // both views failed, fall back to products table
+          console.warn('products_with_image view not available, falling back', err2);
+        }
       }
 
       // fallback: ensure we request image_base64 and image_mime if available
@@ -447,12 +474,86 @@ const EcommerceMenu = () => {
 
   const getTotalAmount = () => {
     return cart.reduce((total, item) => {
-      return total + (item.weight_kg * item.product.base_price_per_kg);
+      const pricing = getPriceForWeight(item.product, item.weight_kg);
+      return total + pricing.total;
     }, 0);
   };
 
   const getTotalWeight = () => {
     return cart.reduce((total, item) => total + item.weight_kg, 0);
+  };
+
+  // Helper function to get the correct price for a specific weight
+  const getPriceForWeight = (product: Product, weightKg: number): { total: number; perKg: number } => {
+    if (!product.pricing_tiers || product.pricing_tiers.length === 0) {
+      return {
+        total: product.base_price_per_kg * weightKg,
+        perKg: product.base_price_per_kg
+      };
+    }
+
+    // Find exact weight match first
+    const exactMatch = product.pricing_tiers.find(tier => 
+      tier.is_active && Math.abs(tier.weight_kg - weightKg) < 0.001
+    );
+
+    if (exactMatch) {
+      return {
+        total: exactMatch.price_total,
+        perKg: exactMatch.price_per_kg
+      };
+    }
+
+    // If no exact match, use base price calculation
+    return {
+      total: product.base_price_per_kg * weightKg,
+      perKg: product.base_price_per_kg
+    };
+  };
+
+  // Helper function to get all available weight options for display
+  const getAvailableWeightOptions = (product: Product): PricingTier[] => {
+    if (!product.pricing_tiers) return [];
+    return product.pricing_tiers
+      .filter(tier => tier.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order || a.weight_kg - b.weight_kg);
+  };
+
+  // Helper function to get common weight options (250g, 500g, 750g, 1kg, etc.) - only up to 2kg for dropdown
+  const getCommonWeightOptions = (): { weight: number; label: string }[] => {
+    return [
+      { weight: 0.25, label: '250gm' },
+      { weight: 0.5, label: '500gm' },
+      { weight: 0.75, label: '750gm' },
+      { weight: 1.0, label: '1kg' },
+      { weight: 1.5, label: '1.5kg' },
+      { weight: 2.0, label: '2kg' }
+    ];
+  };
+
+  // Helper function to get available dropdown weight options (up to 2kg only)
+  const getDropdownWeightOptions = (product: Product): PricingTier[] => {
+    if (!product.pricing_tiers) return [];
+    return product.pricing_tiers
+      .filter(tier => tier.is_active && tier.weight_kg <= 2.0)
+      .sort((a, b) => a.sort_order - b.sort_order || a.weight_kg - b.weight_kg);
+  };
+
+  // Helper function to get higher weight options (above 2kg) for display in placeholder
+  const getHigherWeightOptions = (product: Product): PricingTier[] => {
+    if (!product.pricing_tiers) return [];
+    return product.pricing_tiers
+      .filter(tier => tier.is_active && tier.weight_kg > 2.0)
+      .sort((a, b) => a.sort_order - b.sort_order || a.weight_kg - b.weight_kg);
+  };
+
+  // Helper function to format weight display
+  const formatWeightDisplay = (weightKg: number): string => {
+    if (weightKg >= 1) {
+      return weightKg === Math.floor(weightKg) ? `${Math.floor(weightKg)}kg` : `${weightKg}kg`;
+    } else {
+      return `${Math.round(weightKg * 1000)}gm`;
+    }
   };
 
   const placeOrder = async () => {
@@ -483,7 +584,7 @@ const EcommerceMenu = () => {
         product_id: item.product.id,
         quantity: item.quantity,
         weight_kg: item.weight_kg,
-        total_amount: item.weight_kg * item.product.base_price_per_kg,
+        total_amount: getPriceForWeight(item.product, item.weight_kg).total,
         delivery_address: deliveryAddress,
         special_instructions: specialInstructions || null,
         status: 'pending'
@@ -603,7 +704,7 @@ const EcommerceMenu = () => {
                         <CardContent className="p-2">
                           <div>
                             <h4 className="font-medium text-base">{product.name}</h4>
-                            <div className="text-sm text-gray-600">₹{product.base_price_per_kg}/kg</div>
+                            <div className="text-sm text-gray-600">View options in cart</div>
                           </div>
                           <div className="mt-2 grid grid-cols-2 gap-2">
                             <Button variant="outline" size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('cart'); setShowProductDialog(true); }}>
@@ -636,7 +737,7 @@ const EcommerceMenu = () => {
                   <CardContent className="p-2">
                     <div>
                       <h4 className="font-medium text-base">{product.name}</h4>
-                      <div className="text-sm text-gray-600">₹{product.base_price_per_kg}/kg</div>
+                      <div className="text-sm text-gray-600">View options in cart</div>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <Button variant="outline" size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('cart'); setShowProductDialog(true); }}>
@@ -693,35 +794,54 @@ const EcommerceMenu = () => {
                 
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <Label htmlFor="weightSelect">Choose weight per kg</Label>
-                    <select id="weightSelect" value={selectedWeight} onChange={(e) => setSelectedWeight(e.target.value)} className="mt-1 w-full border rounded p-2">
-                      <option value="0.25">250 g</option>
-                      <option value="0.5">500 g</option>
-                      <option value="0.75">750 g</option>
-                      <option value="1">1 kg</option>
-                      <option value="1.5">1.5 kg</option>
-                      <option value="2">2 kg</option>
+                    <Label>Choose weight and see pricing</Label>
+                    {/* Dropdown showing actual pricing tiers up to 2kg */}
+                    <select 
+                      id="weightSelect" 
+                      value={selectedWeight} 
+                      onChange={(e) => setSelectedWeight(e.target.value)} 
+                      className="mt-1 w-full border rounded p-2"
+                    >
+                      <option value="">Select weight</option>
+                      {getDropdownWeightOptions(selectedProduct).map(tier => (
+                        <option key={tier.id} value={tier.weight_kg}>
+                          {tier.tier_name || formatWeightDisplay(tier.weight_kg)}
+                        </option>
+                      ))}
                     </select>
-                    <div className="mt-2">
-                      <Label htmlFor="customWeight">Or custom weight (kg) — use this for weights above 2kg</Label>
-                      <Input id="customWeight" placeholder="e.g. 2.5" value={customWeight} onChange={(e) => setCustomWeight(e.target.value)} />
+                    <div className="mt-3">
+                      <Label htmlFor="customWeight">
+                        {getHigherWeightOptions(selectedProduct).length > 0 
+                          ? `For weights above 2kg (${getHigherWeightOptions(selectedProduct).map(t => formatWeightDisplay(t.weight_kg)).join(', ')}) or custom weight (up to 5kg)`
+                          : 'Or enter custom weight (up to 5kg)'
+                        }
+                      </Label>
+                      <Input 
+                        id="customWeight" 
+                        placeholder={
+                          getHigherWeightOptions(selectedProduct).length > 0 
+                            ? `Available: ${getHigherWeightOptions(selectedProduct).map(t => formatWeightDisplay(t.weight_kg)).join(', ')} or custom (e.g. 2.5)`
+                            : 'e.g. 2.5'
+                        }
+                        value={customWeight} 
+                        onChange={(e) => setCustomWeight(e.target.value)}
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="5.0"
+                      />
                     </div>
-                    {/* quantity removed from dialog — add multiple pieces by clicking Add multiple times */}
                   </div>
                 </div>
                 
                 <div className="border-t pt-4">
                   <div className="flex justify-between text-sm mb-2">
                     <span>Weight:</span>
-                    <span>{((customWeight ? parseFloat(customWeight) : parseFloat(selectedWeight)) || 0).toFixed(2)}kg</span>
-                  </div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Per kg price:</span>
-                    <span>₹{selectedProduct.base_price_per_kg.toFixed(2)}/kg</span>
+                    <span>{formatWeightDisplay((customWeight ? parseFloat(customWeight) : parseFloat(selectedWeight)) || 0)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total Price:</span>
-                    <span>₹{(((customWeight ? parseFloat(customWeight) : parseFloat(selectedWeight)) || 0) * selectedProduct.base_price_per_kg).toFixed(2)}</span>
+                    <span>₹{getPriceForWeight(selectedProduct, (customWeight ? parseFloat(customWeight) : parseFloat(selectedWeight)) || 0).total.toFixed(2)}</span>
                   </div>
                 </div>
                 
@@ -785,7 +905,7 @@ const EcommerceMenu = () => {
                     <div key={item.product.id} className="flex items-center justify-between">
                       <div className="text-sm">
                         <div className="font-medium">{item.product.name}</div>
-                        <div className="text-xs text-gray-500">{item.quantity} x • {item.weight_kg}kg</div>
+                        <div className="text-xs text-gray-500">{item.quantity} x • {formatWeightDisplay(item.weight_kg)}</div>
                       </div>
                       <div className="font-semibold">₹{(item.weight_kg * item.product.base_price_per_kg).toFixed(2)}</div>
                     </div>
@@ -795,7 +915,7 @@ const EcommerceMenu = () => {
 
               <div className="flex justify-between font-bold">
                 <div>Total</div>
-                <div>₹{(((buyItems && buyItems.length) ? buyItems : cart).reduce((s, it) => s + (it.weight_kg * it.product.base_price_per_kg), 0)).toFixed(2)}</div>
+                <div>₹{(((buyItems && buyItems.length) ? buyItems : cart).reduce((s, it) => s + getPriceForWeight(it.product, it.weight_kg).total, 0)).toFixed(2)}</div>
               </div>
 
               <div className="flex gap-2">
@@ -906,10 +1026,10 @@ const EcommerceMenu = () => {
                   <div key={item.product.id} className="flex items-center justify-between border-b py-2">
                     <div>
                       <div className="font-medium">{item.product.name}</div>
-                      <div className="text-sm text-gray-600">{item.quantity}x • {item.weight_kg}kg</div>
+                      <div className="text-sm text-gray-600">{item.quantity}x • {formatWeightDisplay(item.weight_kg)}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">₹{(item.weight_kg * item.product.base_price_per_kg).toFixed(2)}</div>
+                      <div className="font-semibold">₹{getPriceForWeight(item.product, item.weight_kg).total.toFixed(2)}</div>
                     </div>
                   </div>
                 ))

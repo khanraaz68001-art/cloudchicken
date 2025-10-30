@@ -69,6 +69,14 @@ const EnhancedAdminDashboard = () => {
     base_price_per_kg: "",
   });
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [managingPricingFor, setManagingPricingFor] = useState<Product | null>(null);
+  const [pricingTiers, setPricingTiers] = useState<any[]>([]);
+  const [newTier, setNewTier] = useState({
+    tier_name: '',
+    weight_kg: '',
+    price_total: '',
+    price_per_kg: ''
+  });
 
   useEffect(() => {
     if (userProfile?.role === 'admin') {
@@ -281,6 +289,79 @@ const EnhancedAdminDashboard = () => {
       if (error) throw error;
       setSuccess('Product deleted');
       await fetchProducts();
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Pricing management functions
+  const openPricingManager = async (product: Product) => {
+    setManagingPricingFor(product);
+    await fetchPricingTiers(product.id);
+  };
+
+  const fetchPricingTiers = async (productId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('product_pricing_tiers')
+        .select('*')
+        .eq('product_id', productId)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      setPricingTiers(data || []);
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
+
+  const addPricingTier = async () => {
+    if (!managingPricingFor || !newTier.weight_kg || !newTier.price_total) {
+      setError('Please fill in weight and total price');
+      return;
+    }
+
+    const weightKg = parseFloat(newTier.weight_kg);
+    const priceTotal = parseFloat(newTier.price_total);
+    const pricePerKg = priceTotal / weightKg;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('product_pricing_tiers')
+        .insert({
+          product_id: managingPricingFor.id,
+          weight_kg: weightKg,
+          price_total: priceTotal,
+          price_per_kg: pricePerKg,
+          tier_name: newTier.tier_name || `${weightKg}kg`
+        });
+
+      if (error) throw error;
+      setSuccess('Weight-based pricing added');
+      setNewTier({ tier_name: '', weight_kg: '', price_total: '', price_per_kg: '' });
+      await fetchPricingTiers(managingPricingFor.id);
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deletePricingTier = async (tierId: string) => {
+    if (!window.confirm('Delete this pricing tier?')) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('product_pricing_tiers')
+        .delete()
+        .eq('id', tierId);
+      if (error) throw error;
+      setSuccess('Pricing tier deleted');
+      if (managingPricingFor) {
+        await fetchPricingTiers(managingPricingFor.id);
+      }
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -726,6 +807,9 @@ const EnhancedAdminDashboard = () => {
                             </div>
                           </DialogContent>
                         </Dialog>
+                        <Button size="sm" variant="secondary" onClick={() => openPricingManager(product)}>
+                          Pricing
+                        </Button>
                         <Button size="sm" variant="destructive" onClick={() => deleteProduct(product.id)}>
                           <Trash2 className="h-4 w-4 mr-2" /> Delete
                         </Button>
@@ -737,6 +821,119 @@ const EnhancedAdminDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Pricing Management Dialog */}
+        <Dialog open={!!managingPricingFor} onOpenChange={(open) => { if (!open) setManagingPricingFor(null); }}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Manage Pricing Tiers - {managingPricingFor?.name}</DialogTitle>
+              <DialogDescription>
+                Set different prices for different quantity ranges. Lower quantities will use higher tiers automatically.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Current base price */}
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium">Base Price</h4>
+                <p className="text-sm text-gray-600">Default price when no tiers match: <span className="font-semibold">₹{managingPricingFor?.base_price_per_kg}/kg</span></p>
+              </div>
+
+              {/* Add new weight-based pricing */}
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium mb-3">Add Weight-Specific Pricing</h4>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="tierName">Display Name (Optional)</Label>
+                    <Input
+                      id="tierName"
+                      placeholder="e.g., 500g, 1kg"
+                      value={newTier.tier_name}
+                      onChange={(e) => setNewTier({ ...newTier, tier_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="weightKg">Weight (kg) *</Label>
+                    <Input
+                      id="weightKg"
+                      type="number"
+                      step="0.001"
+                      placeholder="0.25, 0.5, 1.0, etc."
+                      value={newTier.weight_kg}
+                      onChange={(e) => setNewTier({ ...newTier, weight_kg: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="totalPrice">Total Price (₹) *</Label>
+                    <Input
+                      id="totalPrice"
+                      type="number"
+                      step="0.01"
+                      placeholder="120.00"
+                      value={newTier.price_total}
+                      onChange={(e) => {
+                        const total = e.target.value;
+                        const weight = parseFloat(newTier.weight_kg) || 0;
+                        const perKg = weight > 0 ? (parseFloat(total) / weight).toFixed(2) : '';
+                        setNewTier({ 
+                          ...newTier, 
+                          price_total: total,
+                          price_per_kg: perKg 
+                        });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pricePerKg">Price per kg (₹)</Label>
+                    <Input
+                      id="pricePerKg"
+                      type="number"
+                      step="0.01"
+                      placeholder="Auto-calculated"
+                      value={newTier.price_per_kg}
+                      readOnly
+                      className="bg-gray-50"
+                    />
+                  </div>
+                </div>
+                <Button onClick={addPricingTier} disabled={loading} className="mt-3">
+                  Add Tier
+                </Button>
+              </div>
+
+              {/* Existing tiers */}
+              <div>
+                <h4 className="font-medium mb-3">Current Weight-Based Pricing</h4>
+                {pricingTiers.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    No weight-specific pricing set. Product will use base price × weight calculation.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {pricingTiers.map((tier) => (
+                      <div key={tier.id} className="flex items-center justify-between p-3 border rounded">
+                        <div>
+                          <div className="font-medium">{tier.tier_name || `${tier.weight_kg}kg`}</div>
+                          <div className="text-sm text-gray-600">
+                            {tier.weight_kg}kg → ₹{tier.price_total} total (₹{tier.price_per_kg}/kg)
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deletePricingTier(tier.id)}
+                          disabled={loading}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
       <Footer />
     </div>

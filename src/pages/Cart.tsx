@@ -103,7 +103,7 @@ const Cart = () => {
 
                       <div className="flex-1">
                         <h3 className="font-semibold text-lg">{item.product?.name || item.name}</h3>
-                        <p className="text-sm text-muted-foreground">{(item.weight_kg ?? 0).toFixed(2)}kg</p>
+                        <p className="text-sm text-muted-foreground">{(item.weight_kg ?? 0) >= 1 ? `${(item.weight_kg ?? 0).toFixed(1)}kg` : `${((item.weight_kg ?? 0) * 1000).toFixed(0)}gm`}</p>
                         <p className="text-primary font-semibold mt-1">₹{((item.weight_kg ?? 0) * (item.product?.base_price_per_kg ?? item.price ?? 0)).toFixed(2)}</p>
 
                         <div className="flex items-center gap-2 mt-3">
