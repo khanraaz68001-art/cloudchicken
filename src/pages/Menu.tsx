@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import OrderProgress from "@/components/OrderProgress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -643,6 +643,7 @@ const Menu = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add / Use Address</DialogTitle>
+            <DialogDescription>Manage your delivery address for order placement</DialogDescription>
           </DialogHeader>
             <div className="space-y-4">
               <div>

@@ -68,6 +68,7 @@ const EcommerceMenu = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showThankYou, setShowThankYou] = useState(false);
   
   // Order form state
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -622,7 +623,11 @@ const EcommerceMenu = () => {
 
       const firstInsertedId = inserted && inserted.length ? inserted[0].id : null;
 
-      setSuccess("Order placed successfully! You will receive updates on WhatsApp.");
+      // Show thank you popup and auto-hide after 3 seconds
+      setShowThankYou(true);
+      setTimeout(() => {
+        setShowThankYou(false);
+      }, 3000);
 
       // If the order was for the main cart, clear it. If it was an immediate buy, leave main cart intact.
       if (itemsToPlace === cart) {
@@ -673,12 +678,6 @@ const EcommerceMenu = () => {
         {error && (
           <Alert className="mb-6 border-red-200 bg-red-50">
             <AlertDescription className="text-red-800">{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert className="mb-6 border-green-200 bg-green-50">
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
           </Alert>
         )}
 
@@ -1088,8 +1087,75 @@ const EcommerceMenu = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Thank You Popup */}
+        <Dialog open={showThankYou} onOpenChange={setShowThankYou}>
+          <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Order Placed Successfully</DialogTitle>
+              <DialogDescription>Your order has been placed and you will receive updates</DialogDescription>
+            </DialogHeader>
+            <div className="relative z-10 p-8 text-center">
+              {/* Success Icon */}
+              <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center animate-scale-in">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+
+              {/* Main Message */}
+              <h2 className="text-2xl font-bold text-gray-800 mb-2 animate-slide-up">
+                Thank You! 🎉
+              </h2>
+              <p className="text-gray-600 mb-4 animate-slide-up-delay">
+                Your order has been placed successfully
+              </p>
+              
+              {/* Tracking Info */}
+              <div className="bg-blue-50 rounded-xl p-4 animate-fade-in">
+                <p className="text-blue-800 font-medium text-sm mb-1">
+                  📱 Track your order status
+                </p>
+                <p className="text-blue-600 text-xs">
+                  • You'll receive WhatsApp updates
+                </p>
+                <p className="text-blue-600 text-xs">
+                  • Check order tracking page for live updates
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
       <Footer />
+
+      {/* Animation Styles */}
+      <style>{`
+        @keyframes scale-in {
+          0% { transform: scale(0) rotate(-180deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes slide-up {
+          0% { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slide-up-delay {
+          0% { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fade-in {
+          0% { opacity: 0; transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        .animate-scale-in { animation: scale-in 0.6s ease-out; }
+        .animate-slide-up { animation: slide-up 0.5s ease-out 0.1s both; }
+        .animate-slide-up-delay { animation: slide-up-delay 0.5s ease-out 0.2s both; }
+        .animate-fade-in { animation: fade-in 0.5s ease-out 0.3s both; }
+      `}</style>
     </div>
   );
 };

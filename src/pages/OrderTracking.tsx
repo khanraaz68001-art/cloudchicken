@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Navbar } from "@/components/Navbar";
@@ -100,6 +100,9 @@ const OrderTracking = () => {
   const [orderHistory, setOrderHistory] = useState<OrderStatusHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [deliveredOrder, setDeliveredOrder] = useState<Order | null>(null);
+  const [previousOrderStatuses, setPreviousOrderStatuses] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (user) {
@@ -156,7 +159,27 @@ const OrderTracking = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      const newOrders = data || [];
+      
+      // Check for newly delivered orders to show celebration
+      newOrders.forEach(order => {
+        const previousStatus = previousOrderStatuses.get(order.id);
+        if (previousStatus && previousStatus !== 'delivered' && order.status === 'delivered') {
+          // Order just got delivered! Show celebration
+          setDeliveredOrder(order);
+          setShowCelebration(true);
+        }
+      });
+      
+      // Update previous statuses for next comparison
+      const newStatusMap = new Map();
+      newOrders.forEach(order => {
+        newStatusMap.set(order.id, order.status);
+      });
+      setPreviousOrderStatuses(newStatusMap);
+      
+      setOrders(newOrders);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -418,6 +441,152 @@ const OrderTracking = () => {
           </Dialog>
         </div>
       </main>
+
+      {/* 🎉 Delivery Celebration Popup for Customers */}
+      <Dialog open={showCelebration} onOpenChange={setShowCelebration}>
+        <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Order Delivered Successfully</DialogTitle>
+            <DialogDescription>Your order has been delivered and you can track future orders</DialogDescription>
+          </DialogHeader>
+          {/* Confetti Animation */}
+          {showCelebration && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+              {[...Array(50)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`absolute confetti-piece confetti-${i % 8}`}
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${-10 - Math.random() * 20}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                    animationDuration: `${3 + Math.random() * 2}s`,
+                    backgroundColor: [
+                      '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B',
+                      '#EF4444', '#06B6D4', '#84CC16', '#F97316'
+                    ][i % 8],
+                    width: `${6 + Math.random() * 4}px`,
+                    height: `${8 + Math.random() * 6}px`,
+                    transform: `rotate(${Math.random() * 360}deg)`
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="relative z-10 p-8 text-center">
+            {/* Success Icon */}
+            <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center animate-scale-in">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+
+            {/* Main Message */}
+            <h2 className="text-2xl font-bold text-green-600 mb-2 animate-slide-up">
+              Woohoo! Your Order was Delivered! 🎉
+            </h2>
+            <p className="text-gray-600 mb-6 animate-slide-up-delay">
+              Enjoy your fresh, delicious chicken! ✨
+            </p>
+
+            {/* Order Summary */}
+            {deliveredOrder && (
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 animate-fade-in">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Product</span>
+                  <span className="font-semibold text-gray-800">{deliveredOrder.products?.name || 'Fresh Chicken'}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Weight</span>
+                  <span className="font-semibold text-gray-800">{deliveredOrder.weight_kg}kg</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-sm">Total Paid</span>
+                  <span className="font-bold text-green-600">₹{deliveredOrder.total_amount}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Action Button */}
+            <Button 
+              onClick={() => {
+                setShowCelebration(false);
+                setDeliveredOrder(null);
+              }}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 animate-bounce-in"
+            >
+              Yay! Thank You! 🎉
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modern Animation Styles */}
+      <style>{`
+        .confetti-piece {
+          border-radius: 2px;
+          opacity: 0.8;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+
+        @keyframes confetti-fall {
+          0% {
+            transform: translateY(-20px) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+          }
+        }
+
+        @keyframes confetti-sway {
+          0%, 100% { transform: translateX(0px); }
+          50% { transform: translateX(10px); }
+        }
+
+        @keyframes scale-in {
+          0% { transform: scale(0) rotate(-180deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes slide-up {
+          0% { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slide-up-delay {
+          0% { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fade-in {
+          0% { opacity: 0; transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes bounce-in {
+          0% { transform: scale(0.8); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+
+        .animate-scale-in { animation: scale-in 0.6s ease-out; }
+        .animate-slide-up { animation: slide-up 0.5s ease-out 0.1s both; }
+        .animate-slide-up-delay { animation: slide-up-delay 0.5s ease-out 0.2s both; }
+        .animate-fade-in { animation: fade-in 0.5s ease-out 0.3s both; }
+        .animate-bounce-in { animation: bounce-in 0.5s ease-out 0.4s both; }
+
+        .confetti-0 { animation: confetti-fall 4s ease-out, confetti-sway 2s ease-in-out infinite; }
+        .confetti-1 { animation: confetti-fall 3.5s ease-out, confetti-sway 2.2s ease-in-out infinite; }
+        .confetti-2 { animation: confetti-fall 4.5s ease-out, confetti-sway 1.8s ease-in-out infinite; }
+        .confetti-3 { animation: confetti-fall 3s ease-out, confetti-sway 2.5s ease-in-out infinite; }
+        .confetti-4 { animation: confetti-fall 5s ease-out, confetti-sway 1.9s ease-in-out infinite; }
+        .confetti-5 { animation: confetti-fall 3.8s ease-out, confetti-sway 2.1s ease-in-out infinite; }
+        .confetti-6 { animation: confetti-fall 4.2s ease-out, confetti-sway 2.3s ease-in-out infinite; }
+        .confetti-7 { animation: confetti-fall 3.3s ease-out, confetti-sway 2.4s ease-in-out infinite; }
+      `}</style>
 
       <Footer />
     </div>

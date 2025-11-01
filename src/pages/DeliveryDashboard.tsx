@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { getAppSetting } from "@/lib/settings";
+import { getAppSetting, incrementMetric } from "@/lib/settings";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Phone, Package, Volume2, VolumeX } from "lucide-react";
-import { useOrderNotification } from "@/hooks/use-order-notification";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MapPin, Phone, Package } from "lucide-react";
 
 interface DeliveryOrder {
   id: string;
@@ -39,19 +39,13 @@ interface DeliveryOrder {
 
 const DeliveryDashboard = () => {
   const { userProfile } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
-  const [pendingDeliveryOrder, setPendingDeliveryOrder] = useState<DeliveryOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // Sound notification state for new delivery assignments
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [previousOrderCount, setPreviousOrderCount] = useState(0);
-  const { playNotification, stopNotification, isPlaying } = useOrderNotification({
-    enabled: soundEnabled,
-    volume: 0.7,
-    loop: true
-  });
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [deliveredOrder, setDeliveredOrder] = useState<DeliveryOrder | null>(null);
+  const [pendingDeliveryOrder, setPendingDeliveryOrder] = useState<DeliveryOrder | null>(null);
 
   useEffect(() => {
     if (userProfile?.role === 'delivery' || userProfile?.role === 'admin') {
@@ -110,24 +104,7 @@ const DeliveryDashboard = () => {
       if (error) throw error;
       
       const newOrders = data || [];
-      
-      // Check for new delivery orders
-      if (newOrders.length > 0 && soundEnabled && previousOrderCount >= 0) {
-        const currentOrderCount = newOrders.length;
-        
-        // Play notification if we have more orders than before
-        if (currentOrderCount > orders.length) {
-          playNotification();
-        }
-      }
-      
-      // Stop notification if no orders
-      if (newOrders.length === 0 && isPlaying()) {
-        stopNotification();
-      }
-      
       setOrders(newOrders);
-      setPreviousOrderCount(newOrders.length);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -156,11 +133,13 @@ const DeliveryDashboard = () => {
         if (meatError) throw meatError;
       }
 
-      // Stop notification sound when order is delivered
-      const remainingOrders = orders.filter(order => order.id !== orderId);
-      if (remainingOrders.length === 0) {
-        stopNotification();
-      }
+      // Increment happy customer counter in database
+      await incrementMetric('happy_customers');
+
+      // Dispatch order_delivered event to update happy customer counter on homepage
+      window.dispatchEvent(new CustomEvent('order_delivered', { 
+        detail: { orderId } 
+      }));
 
       fetchDeliveryOrders();
     } catch (error: any) {
@@ -188,9 +167,9 @@ const DeliveryDashboard = () => {
 
     let text = '';
     if (type === 'out_for_delivery') {
-      text = `Hi ${order.user_profiles.name},\n\nThis is your Cloud Chicken delivery partner for order #${shortId} (${productName}, ${order.weight_kg}kg, ₹${order.total_amount}). I'm on my way and expect to arrive within ~20-40 minutes.\n\nDelivery address: ${order.delivery_address}\n\nIf you have any special drop-off instructions, please reply here or call ${support}. Thank you!`;
+      text = `👋 Hi ${order.user_profiles.name}!\n\n🚚 This is your Cloud Chicken delivery partner for order #${shortId}!\n\n📦 Order Details:\n🍗 ${productName}\n⚖️ ${order.weight_kg}kg\n💰 ₹${order.total_amount}\n\n📍 Delivery Address: ${order.delivery_address}\n\n⏰ I'm on my way and expect to arrive within ~20-40 minutes.\n\n📞 Special drop-off instructions? Reply here or call ${support}\n\n🙏 Thank you for choosing Cloud Chicken! ✨`;
     } else {
-      text = `Hi ${order.user_profiles.name},\n\nGood news — your Cloud Chicken order #${shortId} (${productName}, ${order.weight_kg}kg) has been delivered. Total: ₹${order.total_amount}.\n\nWe hope everything is perfect — if there are any issues please reply to this message or call ${support}.\n\nThanks for choosing Cloud Chicken!`;
+      text = `🎊 Hi ${order.user_profiles.name}!\n\n✅ Great news — your Cloud Chicken order #${shortId} has been delivered successfully!\n\n📦 Order Summary:\n🍗 ${productName}\n⚖️ ${order.weight_kg}kg\n💰 Total: ₹${order.total_amount}\n\n😋 We hope everything is perfect!\n\n❓ Any issues? Reply here or call ${support} and we'll make it right.\n\n🙏 Thanks for choosing Cloud Chicken! 🌟`;
     }
 
     const message = encodeURIComponent(text);
@@ -229,33 +208,7 @@ const DeliveryDashboard = () => {
               <h1 className="text-3xl font-bold text-gray-900">Delivery Dashboard</h1>
               <p className="text-gray-600">Manage deliveries and mark orders as completed</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={soundEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setSoundEnabled(!soundEnabled);
-                  if (!soundEnabled) {
-                    // If enabling sound and there are delivery orders, start playing
-                    if (orders.length > 0) {
-                      playNotification();
-                    }
-                  } else {
-                    // If disabling sound, stop playing
-                    stopNotification();
-                  }
-                }}
-                className={`flex items-center gap-2 ${isPlaying() && soundEnabled ? 'animate-pulse bg-orange-500 hover:bg-orange-600' : ''}`}
-              >
-                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                {soundEnabled ? (isPlaying() ? 'Bell Ringing' : 'Sound On') : 'Sound Off'}
-              </Button>
-              {isPlaying() && soundEnabled && (
-                <div className="text-sm text-orange-600 font-medium">
-                  🚚 New deliveries ready!
-                </div>
-              )}
-            </div>
+
           </div>
         </div>
 
@@ -402,78 +355,238 @@ const DeliveryDashboard = () => {
         </div>
       </main>
 
-      {/* Confirm/Send dialog when marking delivered (responsive & symmetric) */}
-      <Dialog open={!!pendingDeliveryOrder} onOpenChange={(open) => { if (!open) setPendingDeliveryOrder(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Mark Order Delivered</DialogTitle>
-          </DialogHeader>
+      {/* Delivery Options Dialog */}
+        <Dialog open={!!pendingDeliveryOrder} onOpenChange={(open) => { if (!open) setPendingDeliveryOrder(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Mark Order as Delivered</DialogTitle>
+              <DialogDescription>
+                Choose how you want to mark this order as delivered
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="text-sm text-gray-700 mt-2">
-            <p>Would you like to send a WhatsApp update to the customer before marking this order as delivered?</p>
-            <div className="mt-3">
-              <p className="font-medium">Order #{pendingDeliveryOrder?.id?.slice(0,8)}</p>
-              <p className="text-xs text-gray-500">Customer: {pendingDeliveryOrder?.user_profiles?.name} • {pendingDeliveryOrder?.user_profiles?.whatsapp_number}</p>
-            </div>
-          </div>
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-blue-800">Order #{pendingDeliveryOrder?.id?.slice(0,8)}</p>
+                <p className="text-xs text-blue-600">Customer: {pendingDeliveryOrder?.user_profiles?.name} • {pendingDeliveryOrder?.user_profiles?.whatsapp_number}</p>
+              </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <div className="sm:col-span-1">
-              <Button variant="outline" className="w-full" onClick={() => setPendingDeliveryOrder(null)} disabled={loading}>Cancel</Button>
-            </div>
+              <div className="space-y-3">
+                <Button
+                  className="w-full"
+                  onClick={async () => {
+                    if (!pendingDeliveryOrder) return;
+                    try {
+                      setLoading(true);
+                      // Send WhatsApp message first
+                      await sendWhatsAppMessage(pendingDeliveryOrder, 'delivered');
+                      // Brief delay for WhatsApp to open
+                      setTimeout(async () => {
+                        await markAsDelivered(pendingDeliveryOrder.id, pendingDeliveryOrder.butchered_meat?.id);
+                        // Show celebration popup
+                        setDeliveredOrder(pendingDeliveryOrder);
+                        setShowCelebration(true);
+                        setPendingDeliveryOrder(null);
+                      }, 800);
+                    } catch (e) {
+                      console.warn('Error during send & mark delivered', e);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? 'Processing...' : 'Send WhatsApp & Mark Delivered'}
+                </Button>
 
-            <div className="sm:col-span-1">
-              <Button
-                className="w-full"
-                onClick={async () => {
-                  if (!pendingDeliveryOrder) return;
-                  try {
-                    setLoading(true);
-                    // send a DELIVERED template when delivery is marking delivered with update
-                    await sendWhatsAppMessage(pendingDeliveryOrder, 'delivered');
-                    // give the user a brief moment after opening WhatsApp
-                    setTimeout(async () => {
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={async () => {
+                    if (!pendingDeliveryOrder) return;
+                    try {
+                      setLoading(true);
                       await markAsDelivered(pendingDeliveryOrder.id, pendingDeliveryOrder.butchered_meat?.id);
+                      // Show celebration popup
+                      setDeliveredOrder(pendingDeliveryOrder);
+                      setShowCelebration(true);
                       setPendingDeliveryOrder(null);
-                    }, 800);
-                  } catch (e) {
-                    console.warn('Error during send & mark delivered', e);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-              >
-                {loading ? 'Processing...' : 'Send & Mark Delivered'}
-              </Button>
+                    } catch (e) {
+                      console.warn('Error marking delivered', e);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? 'Processing...' : 'Mark Delivered (No Message)'}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setPendingDeliveryOrder(null)}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modern Delivery Success Popup */}
+      <Dialog open={showCelebration} onOpenChange={setShowCelebration}>
+        <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Delivery Completed Successfully</DialogTitle>
+            <DialogDescription>Order has been marked as delivered with celebration</DialogDescription>
+          </DialogHeader>
+          {/* Confetti Animation */}
+          {showCelebration && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+              {[...Array(50)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`absolute confetti-piece confetti-${i % 8}`}
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${-10 - Math.random() * 20}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                    animationDuration: `${3 + Math.random() * 2}s`,
+                    backgroundColor: [
+                      '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B',
+                      '#EF4444', '#06B6D4', '#84CC16', '#F97316'
+                    ][i % 8],
+                    width: `${6 + Math.random() * 4}px`,
+                    height: `${8 + Math.random() * 6}px`,
+                    transform: `rotate(${Math.random() * 360}deg)`
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          
+          <div className="relative z-10 p-8 text-center">
+            {/* Success Icon */}
+            <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center animate-scale-in">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+              </svg>
             </div>
 
-            <div className="sm:col-span-1">
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={async () => {
-                  if (!pendingDeliveryOrder) return;
-                  try {
-                    setLoading(true);
-                    await markAsDelivered(pendingDeliveryOrder.id, pendingDeliveryOrder.butchered_meat?.id);
-                    setPendingDeliveryOrder(null);
-                  } catch (e) {
-                    console.warn('Error marking delivered', e);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-              >
-                {loading ? 'Processing...' : 'Mark Delivered (no message)'}
-              </Button>
-            </div>
+            {/* Main Message */}
+            <h2 className="text-2xl font-bold text-green-600 mb-2 animate-slide-up">
+              Woohoo! Order was delivered! 🎉
+            </h2>
+            <p className="text-gray-600 mb-6 animate-slide-up-delay">
+              Another happy customer served fresh and fast ✨
+            </p>
+
+            {/* Order Summary */}
+            {deliveredOrder && (
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 animate-fade-in">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Product</span>
+                  <span className="font-semibold text-gray-800">{deliveredOrder.products?.name || 'Fresh Chicken'}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Weight</span>
+                  <span className="font-semibold text-gray-800">{deliveredOrder.weight_kg}kg</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Amount</span>
+                  <span className="font-bold text-green-600">₹{deliveredOrder.total_amount}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-sm">Customer</span>
+                  <span className="font-semibold text-gray-800">{deliveredOrder.user_profiles?.name}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Action Button */}
+            <Button 
+              onClick={() => {
+                setShowCelebration(false);
+                setDeliveredOrder(null);
+                navigate('/menu');
+              }}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 animate-bounce-in"
+            >
+              Awesome! 🎉
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Footer />
+
+      {/* Modern Animation Styles */}
+      <style>{`
+        .confetti-piece {
+          border-radius: 2px;
+          opacity: 0.8;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+
+        @keyframes confetti-fall {
+          0% {
+            transform: translateY(-20px) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+          }
+        }
+
+        @keyframes confetti-sway {
+          0%, 100% { transform: translateX(0px); }
+          50% { transform: translateX(10px); }
+        }
+
+        @keyframes scale-in {
+          0% { transform: scale(0) rotate(-180deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes slide-up {
+          0% { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slide-up-delay {
+          0% { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fade-in {
+          0% { opacity: 0; transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes bounce-in {
+          0% { transform: scale(0.8); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+
+        .animate-scale-in { animation: scale-in 0.6s ease-out; }
+        .animate-slide-up { animation: slide-up 0.5s ease-out 0.1s both; }
+        .animate-slide-up-delay { animation: slide-up-delay 0.5s ease-out 0.2s both; }
+        .animate-fade-in { animation: fade-in 0.5s ease-out 0.3s both; }
+        .animate-bounce-in { animation: bounce-in 0.5s ease-out 0.4s both; }
+
+        .confetti-0 { animation: confetti-fall 4s ease-out, confetti-sway 2s ease-in-out infinite; }
+        .confetti-1 { animation: confetti-fall 3.5s ease-out, confetti-sway 2.2s ease-in-out infinite; }
+        .confetti-2 { animation: confetti-fall 4.5s ease-out, confetti-sway 1.8s ease-in-out infinite; }
+        .confetti-3 { animation: confetti-fall 3s ease-out, confetti-sway 2.5s ease-in-out infinite; }
+        .confetti-4 { animation: confetti-fall 5s ease-out, confetti-sway 1.9s ease-in-out infinite; }
+        .confetti-5 { animation: confetti-fall 3.8s ease-out, confetti-sway 2.1s ease-in-out infinite; }
+        .confetti-6 { animation: confetti-fall 4.2s ease-out, confetti-sway 2.3s ease-in-out infinite; }
+        .confetti-7 { animation: confetti-fall 3.3s ease-out, confetti-sway 2.4s ease-in-out infinite; }
+      `}</style>
     </div>
   );
 };

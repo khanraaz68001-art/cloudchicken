@@ -105,16 +105,8 @@ const KitchenDashboard = () => {
         .from('orders')
         .select(`
           *,
-          user_profiles (name, whatsapp_number),
-          products (
-            id,
-            name,
-            product_categories (name)
-          ),
-          butchered_meat (
-            id,
-            weight_kg
-          )
+          user_profiles!inner (name, whatsapp_number),
+          products!inner (id, name)
         `)
         .in('status', ['placed', 'accepted', 'cutting', 'packing'])
         .order('created_at', { ascending: true });
@@ -288,11 +280,11 @@ const KitchenDashboard = () => {
     }
 
     if (order.status === 'out_for_delivery') {
-      text = `Hi ${order.user_profiles.name},\n\nGood news — your Cloud Chicken order #${shortId} (${productName}, ${order.weight_kg}kg, ₹${order.total_amount}) is now out for delivery. Our delivery partner is on the way and should arrive within ~30 minutes.\n\nDelivery address: ${order.delivery_address}\n\nIf you need to change delivery instructions or call, reply here or call ${supportContact}.\n\nThank you for ordering with Cloud Chicken!`;
+      text = `🎉 Hi ${order.user_profiles.name}!\n\n🚚 Great news — your Cloud Chicken order #${shortId} is now out for delivery!\n\n📦 Order Details:\n🍗 ${productName}\n⚖️ ${order.weight_kg}kg\n💰 ₹${order.total_amount}\n\n📍 Delivery Address: ${order.delivery_address}\n\n⏰ Our delivery partner is on the way and should arrive within ~30 minutes.\n\n📞 Need help? Reply here or call ${supportContact}\n\n🙏 Thank you for choosing Cloud Chicken! ✨`;
     } else if (order.status === 'delivered') {
-      text = `Hi ${order.user_profiles.name},\n\nYour Cloud Chicken order #${shortId} has been delivered. Order: ${productName} (${order.weight_kg}kg). Total: ₹${order.total_amount}.\n\nWe hope everything is perfect — if there are any issues please reply to this message or call ${supportContact} and we'll make it right.\n\nThanks for choosing Cloud Chicken!`;
+      text = `🎊 Hi ${order.user_profiles.name}!\n\n✅ Your Cloud Chicken order #${shortId} has been delivered successfully!\n\n📦 Order Summary:\n🍗 ${productName}\n⚖️ ${order.weight_kg}kg\n💰 Total: ₹${order.total_amount}\n\n😋 We hope you enjoy your fresh chicken!\n\n❓ Any issues? Reply here or call ${supportContact} and we'll make it right.\n\n🙏 Thank you for choosing Cloud Chicken! 🌟`;
     } else {
-      text = `Hi ${order.user_profiles.name},\n\nYour Cloud Chicken order #${shortId} is now ${statusLabel}. We'll keep you updated on the progress.\n\nThanks, Cloud Chicken.`;
+      text = `👋 Hi ${order.user_profiles.name}!\n\n📱 Your Cloud Chicken order #${shortId} is now ${statusLabel}.\n\n⏳ We'll keep you updated on the progress.\n\n🙏 Thanks for choosing Cloud Chicken! ✨`;
     }
 
     const message = encodeURIComponent(text);

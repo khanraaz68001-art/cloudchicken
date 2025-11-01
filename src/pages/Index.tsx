@@ -108,11 +108,11 @@ const Index = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <Meta
-        title={`Fresh Chicken Delivery in India — Cloud Chicken`}
-        description={`Order fresh chicken online for fast home delivery. Affordable prices for whole chicken, breasts, and butchered cuts. Delivery in under 2 hours.`}
+        title={`Fresh Chicken Delivery in Dibrugarh — Cloud Chicken`}
+        description={`Order fresh chicken online for fast home delivery in Dibrugarh, Assam. Affordable prices for whole chicken, breasts, and butchered cuts. Delivery in under 2 hours across Dibrugarh.`}
         url={`https://cloudchicken.in/`}
         image={`https://cloudchicken.in/src/assets/hero-chicken.jpg`}
-        keywords={`chicken near me, fresh chicken delivery, cheap chicken near me, buy chicken online, chicken delivery`}
+        keywords={`chicken near me, fresh chicken delivery dibrugarh, cheap chicken dibrugarh, buy chicken online dibrugarh, chicken delivery assam`}
       />
       
       <main className="flex-1">
@@ -138,7 +138,7 @@ const Index = () => {
                 </span>
               </h1>
               <p className="text-xl md:text-2xl text-foreground/80 leading-relaxed">
-                Premium quality chicken delivered to your doorstep in under 2 hours. Fresh, cleaned, and ready to cook.
+                Premium quality chicken delivered to your doorstep in Dibrugarh in under 2 hours. Fresh, cleaned, and ready to cook.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link to="/menu">
@@ -167,6 +167,35 @@ const Index = () => {
                   {/* show exact for small counts (<10), else show nearest 10s like 10+, 20+ */}
                   <div className="text-3xl font-bold text-primary">{happyCount < 10 ? `${happyCount}+` : `${Math.floor(happyCount / 10) * 10}+`}</div>
                   <div className="text-sm text-muted-foreground">Happy Customers</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section for SEO */}
+        <section className="py-16 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="max-w-3xl mx-auto">
+              <h2 className="text-3xl font-bold text-center mb-12">
+                Frequently Asked Questions - Chicken Delivery in Dibrugarh
+              </h2>
+              <div className="space-y-6">
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">Do you deliver fresh chicken in Dibrugarh?</h3>
+                  <p className="text-foreground/80">Yes, Cloud Chicken provides fresh chicken delivery across Dibrugarh, Assam within 2 hours of ordering. We serve all major areas in Dibrugarh district.</p>
+                </div>
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">What are your delivery charges in Dibrugarh?</h3>
+                  <p className="text-foreground/80">We offer competitive delivery rates across Dibrugarh. Check our menu for current delivery charges to your specific location in Dibrugarh.</p>
+                </div>
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">How fresh is the chicken you deliver?</h3>
+                  <p className="text-foreground/80">All our chicken is sourced fresh daily from trusted suppliers in Assam. We maintain strict quality standards and deliver within 2 hours to ensure maximum freshness.</p>
+                </div>
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">Can I order chicken online in Dibrugarh?</h3>
+                  <p className="text-foreground/80">Yes! Simply visit our menu page, select your preferred chicken cuts, and place your order online. We accept various payment methods including UPI, cash, and cards.</p>
                 </div>
               </div>
             </div>
@@ -265,10 +294,10 @@ const Index = () => {
         <section className="py-16 bg-gradient-to-br from-primary to-accent">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              Ready to Experience Fresh Chicken Delivery?
+              Ready to Experience Fresh Chicken Delivery in Dibrugarh?
             </h2>
             <p className="text-white/90 text-lg mb-8 max-w-2xl mx-auto">
-              Join thousands of satisfied customers who trust Cloud Chicken for their daily fresh chicken needs
+              Join thousands of satisfied customers in Dibrugarh who trust Cloud Chicken for their daily fresh chicken needs
             </p>
             <Button onClick={handleGetStarted} size="lg" variant="secondary" className="text-lg px-8">
               Get Started Today
@@ -276,11 +305,46 @@ const Index = () => {
           </div>
         </section>
 
+        {/* SEO-Optimized Local Content Section */}
+        <section className="py-16 bg-card">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto text-center space-y-8">
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                Best Fresh Chicken Delivery Service in Dibrugarh, Assam
+              </h2>
+              <div className="grid md:grid-cols-2 gap-8 text-left">
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold">Why Choose Cloud Chicken in Dibrugarh?</h3>
+                  <ul className="space-y-2 text-foreground/80">
+                    <li>✓ Fresh chicken delivered within 2 hours across Dibrugarh</li>
+                    <li>✓ Premium quality chicken sourced locally in Assam</li>
+                    <li>✓ Affordable prices for all chicken cuts and varieties</li>
+                    <li>✓ Hygienic cleaning and packaging standards</li>
+                    <li>✓ Reliable delivery service throughout Dibrugarh district</li>
+                  </ul>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold">Service Areas in Dibrugarh</h3>
+                  <p className="text-foreground/80">
+                    We provide fresh chicken delivery across all major areas in Dibrugarh including 
+                    Amolapatty, Graham Bazaar, Chowkidingee, New Market, Mancotta Road, 
+                    Purnananda Road, and surrounding localities in Dibrugarh district, Assam.
+                  </p>
+                  <p className="text-foreground/80">
+                    <strong>Contact:</strong> +91 8099747830<br/>
+                    <strong>Address:</strong> Amolapatty, Rosegali, Dibrugarh, Assam 786001
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Embedded Location (homepage only) */}
         {locationEmbed && (
-          <section className="py-16 bg-card">
+          <section className="py-16 bg-background">
             <div className="container mx-auto px-4">
-              <h2 className="text-2xl font-bold mb-4">Our Location</h2>
+              <h2 className="text-2xl font-bold mb-4 text-center">Find Us in Dibrugarh</h2>
               <div className="w-full h-80 overflow-hidden rounded-lg" dangerouslySetInnerHTML={{ __html: locationEmbed }} />
             </div>
           </section>

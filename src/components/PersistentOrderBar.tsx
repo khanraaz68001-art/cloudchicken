@@ -17,7 +17,6 @@ export default function PersistentOrderBar() {
   const [order, setOrder] = useState<any | null>(null);
 
   // UI state & refs must be declared unconditionally to preserve Hooks order
-  const [showDeliveredModal, setShowDeliveredModal] = useState(false);
   const [showCancelledModal, setShowCancelledModal] = useState(false);
   const [forceFullFill, setForceFullFill] = useState(false);
   const [deliveredVisible, setDeliveredVisible] = useState(false);
@@ -79,9 +78,8 @@ export default function PersistentOrderBar() {
       // Wrap async operations so we can await product lookups before showing toast/modal
       (async () => {
         try {
-          // Trigger full bar fill animation and show delivered modal
+          // Trigger full bar fill animation 
           setForceFullFill(true);
-          setShowDeliveredModal(true);
           // show the bar for 10s then hide
           setDeliveredVisible(true);
           if (deliveredTimerRef.current) window.clearTimeout(deliveredTimerRef.current);
@@ -113,13 +111,13 @@ export default function PersistentOrderBar() {
             if (exists) return; // already recorded
 
             // fetch customer info
-            const { data: userProf } = await supabase.from('user_profiles').select('name,whatsapp_number,phone_number').eq('id', order.user_id).maybeSingle();
+            const { data: userProf } = await supabase.from('user_profiles').select('name,whatsapp_number').eq('id', order.user_id).maybeSingle();
 
             const payload = {
               sale_date: new Date().toISOString().slice(0,10),
               order_id: order.id,
               customer_name: userProf?.name || null,
-              customer_phone: userProf?.whatsapp_number || userProf?.phone_number || null,
+              customer_phone: userProf?.whatsapp_number || null,
               product_id: order.product_id || null,
               product_name: prodName || null,
               quantity: order.weight_kg || null
@@ -261,31 +259,6 @@ export default function PersistentOrderBar() {
           </div>
         </div>
       </div>
-      {/* Delivered confirmation modal */}
-      <Dialog open={showDeliveredModal} onOpenChange={(open) => setShowDeliveredModal(open)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Order Delivered</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm">Your order <strong>#{order?.id}</strong> has been delivered.</p>
-            <p className="text-sm">Details:</p>
-            <div className="text-sm text-gray-700">
-              <div>Product: {productName || order?.product_id}</div>
-              <div>Weight: {order?.weight_kg} kg</div>
-              <div>Total: ₹{order?.total_amount}</div>
-              <div>Delivery address: {order?.delivery_address}</div>
-            </div>
-            <div className="pt-3">
-              <p className="font-medium">We hope to serve you more.</p>
-              <p className="text-sm text-gray-600">With regards, Cloud Chicken</p>
-            </div>
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setShowDeliveredModal(false)}>Close</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
       {/* Cancelled confirmation modal */}
       <Dialog open={showCancelledModal} onOpenChange={(open) => setShowCancelledModal(open)}>
         <DialogContent>

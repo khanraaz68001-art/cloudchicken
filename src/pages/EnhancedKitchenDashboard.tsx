@@ -13,7 +13,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { useOrderNotification } from "@/hooks/use-order-notification";
-import { MessageSquare, Scissors, Package, Scale } from "lucide-react";
+import { MessageSquare, Scissors, Package } from "lucide-react";
 
 interface Order {
   id: string;
@@ -56,19 +56,11 @@ interface Product {
   };
 }
 
-interface StockSummary {
-  available_chickens_count: number;
-  available_weight_kg: number;
-  butchered_chickens_count: number;
-  butchered_weight_kg: number;
-}
-
 const EnhancedKitchenDashboard = () => {
   const { userProfile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [availableChickens, setAvailableChickens] = useState<AvailableChicken[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [stockSummary, setStockSummary] = useState<StockSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -125,8 +117,7 @@ const EnhancedKitchenDashboard = () => {
       await Promise.all([
         fetchOrders(),
         fetchAvailableChickens(),
-        fetchProducts(),
-        fetchStockSummary()
+        fetchProducts()
       ]);
     } catch (error: any) {
       setError(error.message);
@@ -138,16 +129,8 @@ const EnhancedKitchenDashboard = () => {
       .from('orders')
       .select(`
         *,
-        user_profiles (name, whatsapp_number),
-        products (
-          id,
-          name,
-          base_price_per_kg
-        ),
-        butchered_meat (
-          id,
-          individual_chicken_id
-        )
+        user_profiles!inner (name, whatsapp_number),
+        products!inner (id, name, base_price_per_kg)
       `)
   // include 'pending' and 'cancelled' so kitchen can see cancelled records
   .in('status', ['placed','pending', 'accepted', 'confirmed', 'preparing', 'cutting', 'packing', 'ready', 'out_for_delivery', 'cancelled'])
@@ -197,25 +180,12 @@ const EnhancedKitchenDashboard = () => {
   const fetchProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        product_categories (name)
-      `)
+      .select('*')
       .eq('is_available', true)
       .order('name');
 
     if (error) throw error;
     setProducts(data || []);
-  };
-
-  const fetchStockSummary = async () => {
-    const { data, error } = await supabase
-      .from('stock_summary')
-      .select('available_chickens_count, available_weight_kg, butchered_chickens_count, butchered_weight_kg')
-      .single();
-
-    if (error) throw error;
-    setStockSummary(data);
   };
 
   const butcherChicken = async () => {
@@ -359,11 +329,11 @@ const EnhancedKitchenDashboard = () => {
 
     let text = '';
     if (order.status === 'out_for_delivery') {
-      text = `Hi ${order.user_profiles.name},\n\nYour Cloud Chicken order #${shortId} (${order.quantity}x ${productName}, ${order.weight_kg}kg) is out for delivery. The delivery partner will reach shortly — please be available to receive the order.\n\nDelivery address: ${order.delivery_address || 'on file'}.\n\nIf you need to update delivery instructions, reply to this message or call ${supportContact}.\n\nThanks, Cloud Chicken.`;
+      text = `🎉 Hi ${order.user_profiles.name}!\n\n🚚 Your Cloud Chicken order #${shortId} is out for delivery!\n\n📦 Order Details:\n🍗 ${order.quantity}x ${productName}\n⚖️ ${order.weight_kg}kg\n\n📍 Delivery Address: ${order.delivery_address || 'on file'}\n\n⏰ Our delivery partner will reach shortly — please be available to receive your order!\n\n📞 Need to update delivery instructions? Reply here or call ${supportContact}\n\n🙏 Thanks for choosing Cloud Chicken! ✨`;
     } else if (order.status === 'delivered') {
-      text = `Hi ${order.user_profiles.name},\n\nYour Cloud Chicken order #${shortId} has been delivered. Order: ${order.quantity}x ${productName} (${order.weight_kg}kg). Total: ₹${order.total_amount}.\n\nHope you're happy with your order — reply here if anything needs attention.\n\nThank you for choosing Cloud Chicken!`;
+      text = `🎊 Hi ${order.user_profiles.name}!\n\n✅ Your Cloud Chicken order #${shortId} has been delivered successfully!\n\n📦 Order Summary:\n🍗 ${order.quantity}x ${productName}\n⚖️ ${order.weight_kg}kg\n💰 Total: ₹${order.total_amount}\n\n😋 Hope you're happy with your fresh order!\n\n❓ Any concerns? Reply here or call ${supportContact}\n\n🙏 Thank you for choosing Cloud Chicken! 🌟`;
     } else {
-      text = `Hi ${order.user_profiles.name},\n\nYour Cloud Chicken order #${shortId} (${order.quantity}x ${productName}, ${order.weight_kg}kg) is now ${statusLabel}. We'll notify you when it moves to the next stage.\n\nThanks, Cloud Chicken.`;
+      text = `👋 Hi ${order.user_profiles.name}!\n\n📱 Your Cloud Chicken order #${shortId} is now ${statusLabel}.\n\n📦 Order Details:\n🍗 ${order.quantity}x ${productName}\n⚖️ ${order.weight_kg}kg\n\n⏳ We'll notify you when it moves to the next stage.\n\n🙏 Thanks for choosing Cloud Chicken! ✨`;
     }
 
     const message = encodeURIComponent(text);
@@ -457,10 +427,9 @@ const EnhancedKitchenDashboard = () => {
         )}
 
         <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="butchering">Butchering</TabsTrigger>
-            <TabsTrigger value="stock">Stock Overview</TabsTrigger>
           </TabsList>
 
           {/* Orders Tab */}
@@ -636,9 +605,6 @@ const EnhancedKitchenDashboard = () => {
                           {products.map((product) => (
                             <SelectItem key={product.id} value={product.id}>
                               {product.name} - ₹{product.base_price_per_kg}/kg
-                              <span className="text-sm text-gray-500 ml-2">
-                                ({product.product_categories.name})
-                              </span>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -700,7 +666,7 @@ const EnhancedKitchenDashboard = () => {
                       >
                         <div>
                           <div className="font-medium">{product.name}</div>
-                          <div className="text-sm text-gray-600">{product.product_categories.name}</div>
+                          <div className="text-sm text-gray-600">₹{product.base_price_per_kg}/kg</div>
                         </div>
                         <div className="text-right">
                           <div className="font-medium">₹{product.base_price_per_kg}/kg</div>
@@ -713,44 +679,7 @@ const EnhancedKitchenDashboard = () => {
             </div>
           </TabsContent>
 
-          {/* Stock Overview Tab */}
-          <TabsContent value="stock" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <Scale className="h-5 w-5" />
-                    Available Stock
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-green-600">
-                    {stockSummary?.available_chickens_count || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    chickens • {stockSummary?.available_weight_kg || 0}kg total
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Butchered Stock
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-orange-600">
-                    {stockSummary?.butchered_chickens_count || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    chickens • {stockSummary?.butchered_weight_kg || 0}kg processed
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
       <Footer />
