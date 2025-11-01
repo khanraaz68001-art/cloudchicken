@@ -292,7 +292,7 @@ const Index = () => {
                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                   <div className="bg-card p-6 rounded-lg text-center space-y-4">
                     <MapPin className="h-12 w-12 text-primary mx-auto" />
-                    <h3 className="font-semibold text-lg">Residential Areas</h3>
+                    <h3 className="font-semibold text-lg">South Amolapatty</h3>
                     <p className="text-sm text-muted-foreground">
                       Amolapatty, Rosegali, Purnananda Road, Khalihamari
                     </p>
@@ -305,9 +305,9 @@ const Index = () => {
                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                   <div className="bg-card p-6 rounded-lg text-center space-y-4">
                     <MapPin className="h-12 w-12 text-primary mx-auto" />
-                    <h3 className="font-semibold text-lg">Extended Areas</h3>
+                    <h3 className="font-semibold text-lg">Boiragimoth & Milan Nagar</h3>
                     <p className="text-sm text-muted-foreground">
-                      Barbaruah, Lahowal, Duliajan Road, Naharkatia Road
+                      Boiragimoth, Milan Nagar and surrounding areas
                     </p>
                     <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                       ✓ FREE Delivery
@@ -321,19 +321,6 @@ const Index = () => {
                     <h3 className="font-semibold text-lg">University Area</h3>
                     <p className="text-sm text-muted-foreground">
                       Dibrugarh University, Rajapukhuri, Borholla
-                    </p>
-                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                      ✓ FREE Delivery
-                    </div>
-                  </div>
-                </CarouselItem>
-                
-                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                  <div className="bg-card p-6 rounded-lg text-center space-y-4">
-                    <MapPin className="h-12 w-12 text-primary mx-auto" />
-                    <h3 className="font-semibold text-lg">Industrial Areas</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Oil India, ONGC Colony, Tengakhat
                     </p>
                     <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                       ✓ FREE Delivery
