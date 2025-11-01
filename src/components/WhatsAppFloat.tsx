@@ -61,7 +61,7 @@ export default function WhatsAppFloat() {
   }, []);
 
   const openWhatsApp = () => {
-    const fallback = '919999999999';
+    const fallback = '918099747830'; // Updated to match your business number
     const target = phone || fallback;
     const url = `https://wa.me/${encodeURIComponent(target)}`;
     window.open(url, '_blank');
