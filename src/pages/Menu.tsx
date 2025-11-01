@@ -100,6 +100,38 @@ const Menu = () => {
     } catch (e) { /* ignore cache parse errors */ }
 
     fetchMenuData();
+    
+    // Set up real-time subscriptions for products and categories
+    const productsSubscription = supabase
+      .channel('products_changes_menu_simple')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'products'
+        }, 
+        () => {
+          // Refresh products when they change
+          fetchMenuData();
+        }
+      )
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'product_categories'
+        }, 
+        () => {
+          // Refresh products when categories change
+          fetchMenuData();
+        }
+      )
+      .subscribe();
+
+    // Cleanup function
+    return () => {
+      supabase.removeChannel(productsSubscription);
+    };
   }, []);
 
   useEffect(() => {

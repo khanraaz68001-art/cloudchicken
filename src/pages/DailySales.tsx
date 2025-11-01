@@ -25,6 +25,44 @@ export default function DailySales() {
 
   useEffect(() => {
     fetchSales();
+    
+    // Set up automatic refresh every 30 seconds for sales data
+    const intervalId = setInterval(() => {
+      fetchSales();
+    }, 30000);
+
+    // Set up real-time subscription for orders table changes that affect sales
+    const salesSubscription = supabase
+      .channel('sales_updates')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'orders'
+        }, 
+        () => {
+          // Refresh sales data when orders change
+          fetchSales();
+        }
+      )
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'daily_sales'
+        }, 
+        () => {
+          // Refresh sales data when daily_sales table changes
+          fetchSales();
+        }
+      )
+      .subscribe();
+
+    // Cleanup function
+    return () => {
+      clearInterval(intervalId);
+      supabase.removeChannel(salesSubscription);
+    };
   }, []);
 
   const fetchSales = async () => {

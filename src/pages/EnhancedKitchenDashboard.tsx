@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,8 @@ import { supabase } from "@/lib/supabase";
 import { getAppSetting } from "@/lib/settings";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { RefreshCw, Volume2, VolumeX } from "lucide-react";
+import { useOrderNotification } from "@/hooks/use-order-notification";
 import { MessageSquare, Scissors, Package, Scale } from "lucide-react";
 
 interface Order {
@@ -76,9 +78,45 @@ const EnhancedKitchenDashboard = () => {
   const [selectedProduct, setSelectedProduct] = useState("");
   const [showButcherDialog, setShowButcherDialog] = useState(false);
 
+  // Sound notification state
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [previousOrderCount, setPreviousOrderCount] = useState(0);
+  const { playNotification, stopNotification, isPlaying } = useOrderNotification({
+    enabled: soundEnabled,
+    volume: 0.7,
+    loop: true
+  });
+
   useEffect(() => {
     if (userProfile?.role === 'kitchen' || userProfile?.role === 'admin') {
       fetchData();
+      
+      // Set up automatic refresh every 10 seconds for real-time updates
+      const intervalId = setInterval(() => {
+        fetchData();
+      }, 10000);
+
+      // Set up real-time subscription for orders table changes
+      const ordersSubscription = supabase
+        .channel('orders_changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'orders'
+          }, 
+          () => {
+            // Refresh data when orders table changes
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      // Cleanup function
+      return () => {
+        clearInterval(intervalId);
+        supabase.removeChannel(ordersSubscription);
+      };
     }
   }, [userProfile]);
 
@@ -116,7 +154,33 @@ const EnhancedKitchenDashboard = () => {
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    setOrders(data || []);
+    
+    const newOrders = data || [];
+    
+    // Check for new pending orders that need attention
+    const pendingOrders = newOrders.filter(order => 
+      order.status === 'pending' || order.status === 'placed'
+    );
+    
+    // If we have more pending orders than before, play notification
+    if (pendingOrders.length > 0 && soundEnabled && previousOrderCount >= 0) {
+      const currentPendingCount = pendingOrders.length;
+      const previousPendingOrders = orders.filter(order => 
+        order.status === 'pending' || order.status === 'placed'
+      );
+      
+      if (currentPendingCount > previousPendingOrders.length) {
+        playNotification();
+      }
+    }
+    
+    // Stop notification if no pending orders
+    if (pendingOrders.length === 0 && isPlaying()) {
+      stopNotification();
+    }
+    
+    setOrders(newOrders);
+    setPreviousOrderCount(newOrders.length);
   };
 
   const fetchAvailableChickens = async () => {
@@ -199,6 +263,18 @@ const EnhancedKitchenDashboard = () => {
       if (error) throw error;
 
       setSuccess(`Order status updated to ${newStatus.replace('_', ' ')}`);
+
+      // Stop notification sound when order is accepted
+      if (newStatus === 'accepted' || newStatus === 'confirmed') {
+        // Check if there are any remaining pending orders after this update
+        const remainingPendingOrders = orders.filter(order => 
+          order.id !== orderId && (order.status === 'pending' || order.status === 'placed')
+        );
+        
+        if (remainingPendingOrders.length === 0) {
+          stopNotification();
+        }
+      }
 
       // If order delivered, reduce the corresponding butchered_meat weight
       if (newStatus === 'delivered') {
@@ -330,8 +406,42 @@ const EnhancedKitchenDashboard = () => {
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Kitchen Dashboard</h1>
-          <p className="text-gray-600">Manage orders, butchering, and stock</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Kitchen Dashboard</h1>
+              <p className="text-gray-600">Manage orders, butchering, and stock</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={soundEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setSoundEnabled(!soundEnabled);
+                  if (!soundEnabled) {
+                    // If enabling sound and there are pending orders, start playing
+                    const pendingOrders = orders.filter(order => 
+                      order.status === 'pending' || order.status === 'placed'
+                    );
+                    if (pendingOrders.length > 0) {
+                      playNotification();
+                    }
+                  } else {
+                    // If disabling sound, stop playing
+                    stopNotification();
+                  }
+                }}
+                className={`flex items-center gap-2 ${isPlaying() && soundEnabled ? 'animate-pulse bg-orange-500 hover:bg-orange-600' : ''}`}
+              >
+                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                {soundEnabled ? (isPlaying() ? 'Bell Ringing' : 'Sound On') : 'Sound Off'}
+              </Button>
+              {isPlaying() && soundEnabled && (
+                <div className="text-sm text-orange-600 font-medium">
+                  🔔 New orders pending!
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {error && (

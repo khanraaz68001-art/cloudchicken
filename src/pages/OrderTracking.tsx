@@ -104,6 +104,34 @@ const OrderTracking = () => {
   useEffect(() => {
     if (user) {
       fetchOrders();
+      
+      // Set up automatic refresh every 15 seconds for user's order tracking
+      const intervalId = setInterval(() => {
+        fetchOrders();
+      }, 15000);
+
+      // Set up real-time subscription for orders table changes
+      const ordersSubscription = supabase
+        .channel('user_orders_tracking')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'orders',
+            filter: `user_id=eq.${user.id}`
+          }, 
+          () => {
+            // Refresh user's orders when their orders change
+            fetchOrders();
+          }
+        )
+        .subscribe();
+
+      // Cleanup function
+      return () => {
+        clearInterval(intervalId);
+        supabase.removeChannel(ordersSubscription);
+      };
     }
   }, [user]);
 

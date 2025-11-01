@@ -194,6 +194,45 @@ const EcommerceMenu = () => {
     } catch (e) { /* ignore cache errors */ }
 
     fetchData();
+    
+    // Set up real-time subscriptions for products and categories
+    const productsSubscription = supabase
+      .channel('products_changes_menu')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'products'
+        }, 
+        () => {
+          // Refresh products when they change
+          fetchProducts();
+        }
+      )
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'product_categories'
+        }, 
+        () => {
+          // Refresh categories when they change
+          fetchCategories();
+        }
+      )
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'product_pricing_tiers'
+        }, 
+        () => {
+          // Refresh products when pricing changes
+          fetchProducts();
+        }
+      )
+      .subscribe();
+      
     // load cart from localStorage if present
     try {
       const raw = localStorage.getItem('cloudcoop_cart');
@@ -210,6 +249,11 @@ const EcommerceMenu = () => {
       const qs = new URLSearchParams(location.search);
       if (qs.get('openCart') === '1') setShowCartModal(true);
     } catch (e) {}
+
+    // Cleanup function
+    return () => {
+      supabase.removeChannel(productsSubscription);
+    };
   }, []);
 
   // keep cart in sync across tabs and same-tab events

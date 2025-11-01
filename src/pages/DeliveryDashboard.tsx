@@ -9,7 +9,8 @@ import { getAppSetting } from "@/lib/settings";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Phone, Package } from "lucide-react";
+import { MapPin, Phone, Package, Volume2, VolumeX } from "lucide-react";
+import { useOrderNotification } from "@/hooks/use-order-notification";
 
 interface DeliveryOrder {
   id: string;
@@ -43,9 +44,45 @@ const DeliveryDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Sound notification state for new delivery assignments
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [previousOrderCount, setPreviousOrderCount] = useState(0);
+  const { playNotification, stopNotification, isPlaying } = useOrderNotification({
+    enabled: soundEnabled,
+    volume: 0.7,
+    loop: true
+  });
+
   useEffect(() => {
     if (userProfile?.role === 'delivery' || userProfile?.role === 'admin') {
       fetchDeliveryOrders();
+      
+      // Set up automatic refresh every 10 seconds for real-time updates
+      const intervalId = setInterval(() => {
+        fetchDeliveryOrders();
+      }, 10000);
+
+      // Set up real-time subscription for orders table changes
+      const ordersSubscription = supabase
+        .channel('orders_changes_delivery')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'orders'
+          }, 
+          () => {
+            // Refresh data when orders table changes
+            fetchDeliveryOrders();
+          }
+        )
+        .subscribe();
+
+      // Cleanup function
+      return () => {
+        clearInterval(intervalId);
+        supabase.removeChannel(ordersSubscription);
+      };
     }
   }, [userProfile]);
 
@@ -71,7 +108,26 @@ const DeliveryDashboard = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      const newOrders = data || [];
+      
+      // Check for new delivery orders
+      if (newOrders.length > 0 && soundEnabled && previousOrderCount >= 0) {
+        const currentOrderCount = newOrders.length;
+        
+        // Play notification if we have more orders than before
+        if (currentOrderCount > orders.length) {
+          playNotification();
+        }
+      }
+      
+      // Stop notification if no orders
+      if (newOrders.length === 0 && isPlaying()) {
+        stopNotification();
+      }
+      
+      setOrders(newOrders);
+      setPreviousOrderCount(newOrders.length);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -98,6 +154,12 @@ const DeliveryDashboard = () => {
           .eq('id', meatId);
 
         if (meatError) throw meatError;
+      }
+
+      // Stop notification sound when order is delivered
+      const remainingOrders = orders.filter(order => order.id !== orderId);
+      if (remainingOrders.length === 0) {
+        stopNotification();
       }
 
       fetchDeliveryOrders();
@@ -162,8 +224,39 @@ const DeliveryDashboard = () => {
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Delivery Dashboard</h1>
-          <p className="text-gray-600">Manage deliveries and mark orders as completed</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Delivery Dashboard</h1>
+              <p className="text-gray-600">Manage deliveries and mark orders as completed</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={soundEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setSoundEnabled(!soundEnabled);
+                  if (!soundEnabled) {
+                    // If enabling sound and there are delivery orders, start playing
+                    if (orders.length > 0) {
+                      playNotification();
+                    }
+                  } else {
+                    // If disabling sound, stop playing
+                    stopNotification();
+                  }
+                }}
+                className={`flex items-center gap-2 ${isPlaying() && soundEnabled ? 'animate-pulse bg-orange-500 hover:bg-orange-600' : ''}`}
+              >
+                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                {soundEnabled ? (isPlaying() ? 'Bell Ringing' : 'Sound On') : 'Sound Off'}
+              </Button>
+              {isPlaying() && soundEnabled && (
+                <div className="text-sm text-orange-600 font-medium">
+                  🚚 New deliveries ready!
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {error && (
