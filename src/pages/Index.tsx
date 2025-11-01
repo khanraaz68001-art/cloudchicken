@@ -1,7 +1,8 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock, ShieldCheck, Truck } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { CheckCircle, Clock, ShieldCheck, Truck, MapPin } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '@/contexts/AuthContext';
 import heroImage from "@/assets/hero-chicken.jpg";
@@ -173,35 +174,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* FAQ Section for SEO */}
-        <section className="py-16 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl font-bold text-center mb-12">
-                Frequently Asked Questions - Chicken Delivery in Dibrugarh
-              </h2>
-              <div className="space-y-6">
-                <div className="border border-border rounded-lg p-6">
-                  <h3 className="font-semibold text-lg mb-2">Do you deliver fresh chicken in Dibrugarh?</h3>
-                  <p className="text-foreground/80">Yes, Cloud Chicken provides fresh chicken delivery across Dibrugarh, Assam within 2 hours of ordering. We serve all major areas in Dibrugarh district.</p>
-                </div>
-                <div className="border border-border rounded-lg p-6">
-                  <h3 className="font-semibold text-lg mb-2">What are your delivery charges in Dibrugarh?</h3>
-                  <p className="text-foreground/80">We offer competitive delivery rates across Dibrugarh. Check our menu for current delivery charges to your specific location in Dibrugarh.</p>
-                </div>
-                <div className="border border-border rounded-lg p-6">
-                  <h3 className="font-semibold text-lg mb-2">How fresh is the chicken you deliver?</h3>
-                  <p className="text-foreground/80">All our chicken is sourced fresh daily from trusted suppliers in Assam. We maintain strict quality standards and deliver within 2 hours to ensure maximum freshness.</p>
-                </div>
-                <div className="border border-border rounded-lg p-6">
-                  <h3 className="font-semibold text-lg mb-2">Can I order chicken online in Dibrugarh?</h3>
-                  <p className="text-foreground/80">Yes! Simply visit our menu page, select your preferred chicken cuts, and place your order online. We accept various payment methods including UPI, cash, and cards.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Why Choose Us */}
         <section className="py-16 bg-secondary/30">
           <div className="container mx-auto px-4">
@@ -290,6 +262,100 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Free Delivery Coverage in Dibrugarh - Carousel */}
+        <section className="py-16 bg-secondary/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                FREE Delivery Everywhere in Dibrugarh!
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                We deliver fresh chicken to all areas in Dibrugarh at no extra cost
+              </p>
+            </div>
+            
+            <Carousel className="max-w-4xl mx-auto">
+              <CarouselContent>
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                  <div className="bg-card p-6 rounded-lg text-center space-y-4">
+                    <MapPin className="h-12 w-12 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">Central Dibrugarh</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Graham Bazaar, New Market, Chowkidingee, Mancotta Road
+                    </p>
+                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                      ✓ FREE Delivery
+                    </div>
+                  </div>
+                </CarouselItem>
+                
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                  <div className="bg-card p-6 rounded-lg text-center space-y-4">
+                    <MapPin className="h-12 w-12 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">Residential Areas</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Amolapatty, Rosegali, Purnananda Road, Khalihamari
+                    </p>
+                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                      ✓ FREE Delivery
+                    </div>
+                  </div>
+                </CarouselItem>
+                
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                  <div className="bg-card p-6 rounded-lg text-center space-y-4">
+                    <MapPin className="h-12 w-12 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">Extended Areas</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Barbaruah, Lahowal, Duliajan Road, Naharkatia Road
+                    </p>
+                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                      ✓ FREE Delivery
+                    </div>
+                  </div>
+                </CarouselItem>
+                
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                  <div className="bg-card p-6 rounded-lg text-center space-y-4">
+                    <MapPin className="h-12 w-12 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">University Area</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Dibrugarh University, Rajapukhuri, Borholla
+                    </p>
+                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                      ✓ FREE Delivery
+                    </div>
+                  </div>
+                </CarouselItem>
+                
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                  <div className="bg-card p-6 rounded-lg text-center space-y-4">
+                    <MapPin className="h-12 w-12 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">Industrial Areas</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Oil India, ONGC Colony, Tengakhat
+                    </p>
+                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                      ✓ FREE Delivery
+                    </div>
+                  </div>
+                </CarouselItem>
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+            
+            <div className="text-center mt-8">
+              <p className="text-lg mb-4">
+                <strong>📍 Coverage:</strong> All areas within Dibrugarh city and 15km radius
+              </p>
+              <p className="text-muted-foreground">
+                Don't see your area? Call us at <strong>+91 8099747830</strong> - We deliver everywhere in Dibrugarh!
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="py-16 bg-gradient-to-br from-primary to-accent">
           <div className="container mx-auto px-4 text-center">
@@ -349,6 +415,39 @@ const Index = () => {
             </div>
           </section>
         )}
+
+        {/* FAQ Section - Moved to bottom for better UX */}
+        <section className="py-16 bg-card">
+          <div className="container mx-auto px-4">
+            <div className="max-w-3xl mx-auto">
+              <h2 className="text-3xl font-bold text-center mb-12">
+                Frequently Asked Questions - Chicken Delivery in Dibrugarh
+              </h2>
+              <div className="space-y-6">
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">Do you deliver fresh chicken in Dibrugarh?</h3>
+                  <p className="text-foreground/80">Yes, Cloud Chicken provides fresh chicken delivery across Dibrugarh, Assam within 2 hours of ordering. We serve all major areas in Dibrugarh district with FREE delivery!</p>
+                </div>
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">What are your delivery charges in Dibrugarh?</h3>
+                  <p className="text-foreground/80">🎉 <strong>Great news!</strong> We offer FREE delivery everywhere in Dibrugarh! No minimum order required. Order fresh chicken and we'll deliver it to your doorstep at no extra cost.</p>
+                </div>
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">How fresh is the chicken you deliver?</h3>
+                  <p className="text-foreground/80">All our chicken is sourced fresh daily from trusted suppliers in Assam. We maintain strict quality standards and deliver within 2 hours to ensure maximum freshness.</p>
+                </div>
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">Can I order chicken online in Dibrugarh?</h3>
+                  <p className="text-foreground/80">Yes! Simply visit our menu page, select your preferred chicken cuts, and place your order online. We accept various payment methods including UPI, cash, and cards.</p>
+                </div>
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-2">Which areas do you cover in Dibrugarh?</h3>
+                  <p className="text-foreground/80">We deliver to all areas in Dibrugarh including Graham Bazaar, Amolapatty, New Market, Chowkidingee, University area, and all surrounding localities within 15km radius - all with FREE delivery!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
       {orderId && <OrderProgress orderId={orderId} onClose={() => setOrderId(null)} />}
 
