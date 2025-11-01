@@ -1,13 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getAppSetting } from '@/lib/settings';
-
-function sanitizePhone(p?: string) {
-  if (!p) return null;
-  // Remove non-digits and leading zeros; keep country code if present
-  const digits = p.replace(/[^0-9+]/g, '');
-  // Remove leading + for wa.me links
-  return digits.replace(/^\+/, '');
-}
+import { formatForWhatsAppURL } from '@/lib/whatsapp';
 
 export default function WhatsAppFloat() {
   const [phone, setPhone] = useState<string | null>(null);
@@ -19,7 +12,7 @@ export default function WhatsAppFloat() {
       try {
         const p = await getAppSetting('support_whatsapp');
         if (!mounted) return;
-        if (p) setPhone(sanitizePhone(p));
+        if (p) setPhone(formatForWhatsAppURL(p));
       } catch (e) {
         console.warn('Failed to load support_whatsapp setting', e);
       }
@@ -62,8 +55,8 @@ export default function WhatsAppFloat() {
   }, []);
 
   const openWhatsApp = () => {
-    const fallback = '918099747830'; // Updated to match your business number
-    const target = phone || fallback;
+    const fallback = '8099747830'; // Business number without country code
+    const target = phone || formatForWhatsAppURL(fallback);
     const url = `https://wa.me/${encodeURIComponent(target)}`;
     window.open(url, '_blank');
   };

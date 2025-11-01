@@ -38,6 +38,11 @@ export default function PersistentOrderBar() {
     };
   }, []);
 
+  // Debug: Track showDeliveredModal changes
+  useEffect(() => {
+    console.log('showDeliveredModal changed to:', showDeliveredModal, 'Current path:', location.pathname);
+  }, [showDeliveredModal, location.pathname]);
+
   useEffect(() => {
     if (!userProfile?.id) return;
     let mounted = true;
@@ -91,8 +96,13 @@ export default function PersistentOrderBar() {
                                   !location.pathname.includes('/kitchen') &&
                                   !location.pathname.includes('/daily-sales');
           
+          console.log('Order delivered - Current path:', location.pathname, 'Is customer screen:', isCustomerScreen);
+          
           if (isCustomerScreen) {
+            console.log('Setting showDeliveredModal to true');
             setShowDeliveredModal(true);
+          } else {
+            console.log('Not showing modal - on admin/staff screen');
           }
           // show the bar for 10s then hide
           setDeliveredVisible(true);
@@ -276,7 +286,10 @@ export default function PersistentOrderBar() {
       </div>
 
       {/* Modern Order Delivered Modal */}
-      <Dialog open={showDeliveredModal} onOpenChange={(open) => setShowDeliveredModal(open)}>
+      <Dialog open={showDeliveredModal} onOpenChange={(open) => {
+        console.log('Delivery modal onOpenChange:', open, 'Current path:', location.pathname);
+        setShowDeliveredModal(open);
+      }}>
         <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
           <DialogHeader className="sr-only">
             <DialogTitle>Order Delivered Successfully</DialogTitle>

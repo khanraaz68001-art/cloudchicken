@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, User } from '../lib/supabase'
+import { standardizeWhatsAppNumber } from '@/lib/whatsapp'
 
 interface AuthContextType {
   user: User | null
@@ -57,11 +58,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true)
       
-      // Call custom authentication function
-      const { data, error } = await supabase.rpc('authenticate_user', {
-        phone_number: whatsappNumber,
+      // First try with standardized number (with 91 prefix)
+      const standardizedNumber = standardizeWhatsAppNumber(whatsappNumber)
+      
+      let { data, error } = await supabase.rpc('authenticate_user', {
+        phone_number: standardizedNumber,
         user_password: password
       })
+
+      // If that fails and the standardized number has 91 prefix, try without it (legacy format)
+      if ((!data || data.length === 0) && standardizedNumber.startsWith('91') && standardizedNumber.length === 12) {
+        const legacyNumber = standardizedNumber.slice(2) // Remove 91 prefix
+        const legacyResult = await supabase.rpc('authenticate_user', {
+          phone_number: legacyNumber,
+          user_password: password
+        })
+        
+        if (!legacyResult.error && legacyResult.data && legacyResult.data.length > 0) {
+          data = legacyResult.data
+          error = null
+        }
+      }
 
       if (error) throw error
       
@@ -88,10 +105,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true)
       
-      // Call custom signup function
+      // Standardize WhatsApp number to include +91 for Indian numbers
+      const standardizedNumber = standardizeWhatsAppNumber(whatsappNumber)
+      
+      // Check if user already exists (try both formats)
+      const legacyNumber = standardizedNumber.startsWith('91') && standardizedNumber.length === 12 
+        ? standardizedNumber.slice(2) 
+        : standardizedNumber
+      
+      // Check for existing user with either format
+      const { data: existingUser } = await supabase
+        .from('user_profiles')
+        .select('whatsapp_number')
+        .or(`whatsapp_number.eq.${standardizedNumber},whatsapp_number.eq.${legacyNumber}`)
+      
+      if (existingUser && existingUser.length > 0) {
+        return { error: 'User with this WhatsApp number already exists' }
+      }
+      
+      // Create user with standardized number (new format with 91 prefix)
       const { data, error } = await supabase.rpc('create_user', {
         user_name: name,
-        phone_number: whatsappNumber,
+        phone_number: standardizedNumber,
         user_password: password
       })
 

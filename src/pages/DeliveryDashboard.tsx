@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getAppSetting, incrementMetric } from "@/lib/settings";
+import { formatForWhatsAppURL } from "@/lib/whatsapp";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -173,7 +174,8 @@ const DeliveryDashboard = () => {
     }
 
     const message = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/${order.user_profiles.whatsapp_number}?text=${message}`;
+    const formattedNumber = formatForWhatsAppURL(order.user_profiles.whatsapp_number);
+    const whatsappUrl = `https://wa.me/${formattedNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
 

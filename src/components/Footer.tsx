@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getAppSetting } from "@/lib/settings";
+import { formatForWhatsAppURL } from "@/lib/whatsapp";
 
 export const Footer = () => {
   const [phone, setPhone] = useState<string | null>(null);
@@ -39,14 +40,8 @@ export const Footer = () => {
   const telUrl = (phoneStr?: string) => phoneStr ? `tel:${phoneStr.replace(/^\+/, '')}` : '#';
   const mailUrl = (emailStr?: string) => emailStr ? `mailto:${emailStr}` : '#';
 
-  const sanitizePhoneForWa = (p?: string) => {
-    if (!p) return null;
-    const digits = p.replace(/[^0-9+]/g, '');
-    return digits.replace(/^\+/, '');
-  };
-
   // render embedded dialog if requested
-  const waNumber = sanitizePhoneForWa(phone) || '919999999999';
+  const waNumber = formatForWhatsAppURL(phone) || '919999999999';
   const waMessage = encodeURIComponent('Hi Cloud Chicken, I need help with my order.');
   const waHref = `https://wa.me/${waNumber}?text=${waMessage}`;
   return (

@@ -13,6 +13,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { useOrderNotification } from "@/hooks/use-order-notification";
+import { formatForWhatsAppURL } from "@/lib/whatsapp";
 import { MessageSquare, Scissors, Package } from "lucide-react";
 
 interface Order {
@@ -337,7 +338,8 @@ const EnhancedKitchenDashboard = () => {
     }
 
     const message = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/${order.user_profiles.whatsapp_number}?text=${message}`;
+    const formattedNumber = formatForWhatsAppURL(order.user_profiles.whatsapp_number);
+    const whatsappUrl = `https://wa.me/${formattedNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
 

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getAppSetting } from "@/lib/settings";
+import { formatForWhatsAppURL } from "@/lib/whatsapp";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Volume2, VolumeX } from "lucide-react";
@@ -288,7 +289,8 @@ const KitchenDashboard = () => {
     }
 
     const message = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/${order.user_profiles.whatsapp_number}?text=${message}`;
+    const formattedNumber = formatForWhatsAppURL(order.user_profiles.whatsapp_number);
+    const whatsappUrl = `https://wa.me/${formattedNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
 
