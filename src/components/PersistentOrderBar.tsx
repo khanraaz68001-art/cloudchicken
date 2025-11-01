@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,6 +16,7 @@ const labelFor = (s: string) => ({
 export default function PersistentOrderBar() {
   const { userProfile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [order, setOrder] = useState<any | null>(null);
 
   // UI state & refs must be declared unconditionally to preserve Hooks order
@@ -83,8 +84,16 @@ export default function PersistentOrderBar() {
         try {
           // Trigger full bar fill animation 
           setForceFullFill(true);
-          // Show the delivered modal
-          setShowDeliveredModal(true);
+          
+          // Only show delivered modal for customers (not on admin/delivery/kitchen pages)
+          const isCustomerScreen = !location.pathname.includes('/admin') && 
+                                  !location.pathname.includes('/delivery') && 
+                                  !location.pathname.includes('/kitchen') &&
+                                  !location.pathname.includes('/daily-sales');
+          
+          if (isCustomerScreen) {
+            setShowDeliveredModal(true);
+          }
           // show the bar for 10s then hide
           setDeliveredVisible(true);
           if (deliveredTimerRef.current) window.clearTimeout(deliveredTimerRef.current);
