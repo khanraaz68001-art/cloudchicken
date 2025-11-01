@@ -85,7 +85,6 @@ const Signup = () => {
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -97,7 +96,6 @@ const Signup = () => {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="9876543210"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   required

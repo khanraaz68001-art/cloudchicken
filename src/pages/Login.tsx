@@ -70,7 +70,6 @@ const Login = () => {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="9876543210"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   required
