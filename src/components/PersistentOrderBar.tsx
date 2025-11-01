@@ -20,6 +20,7 @@ export default function PersistentOrderBar() {
 
   // UI state & refs must be declared unconditionally to preserve Hooks order
   const [showCancelledModal, setShowCancelledModal] = useState(false);
+  const [showDeliveredModal, setShowDeliveredModal] = useState(false);
   const [forceFullFill, setForceFullFill] = useState(false);
   const [deliveredVisible, setDeliveredVisible] = useState(false);
   const [cancelledVisible, setCancelledVisible] = useState(false);
@@ -82,6 +83,8 @@ export default function PersistentOrderBar() {
         try {
           // Trigger full bar fill animation 
           setForceFullFill(true);
+          // Show the delivered modal
+          setShowDeliveredModal(true);
           // show the bar for 10s then hide
           setDeliveredVisible(true);
           if (deliveredTimerRef.current) window.clearTimeout(deliveredTimerRef.current);
@@ -262,6 +265,93 @@ export default function PersistentOrderBar() {
           </div>
         </div>
       </div>
+
+      {/* Modern Order Delivered Modal */}
+      <Dialog open={showDeliveredModal} onOpenChange={(open) => setShowDeliveredModal(open)}>
+        <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Order Delivered Successfully</DialogTitle>
+          </DialogHeader>
+          
+          {/* Confetti Animation */}
+          {showDeliveredModal && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+              {[...Array(50)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`absolute confetti-piece confetti-${i % 8}`}
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${-10 - Math.random() * 20}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                    animationDuration: `${3 + Math.random() * 2}s`,
+                    backgroundColor: [
+                      '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B',
+                      '#EF4444', '#06B6D4', '#84CC16', '#F97316'
+                    ][i % 8],
+                    width: `${6 + Math.random() * 4}px`,
+                    height: `${8 + Math.random() * 6}px`,
+                    transform: `rotate(${Math.random() * 360}deg)`
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="relative z-10 p-8 text-center">
+            {/* Success Icon */}
+            <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center animate-scale-in">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+
+            {/* Main Message */}
+            <h2 className="text-2xl font-bold text-green-600 mb-2 animate-slide-up">
+              Woohoo! Your Order was Delivered! 🎉
+            </h2>
+            <p className="text-gray-600 mb-6 animate-slide-up-delay">
+              Enjoy your fresh, delicious chicken! ✨
+            </p>
+
+            {/* Order Summary */}
+            {order && (
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 animate-fade-in">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Order ID</span>
+                  <span className="font-semibold text-gray-800">#{order.id?.slice(0, 8)}</span>
+                </div>
+                {productName && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600 text-sm">Product</span>
+                    <span className="font-semibold text-gray-800">{productName}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Weight</span>
+                  <span className="font-semibold text-gray-800">{order.weight_kg}kg</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-sm">Total Paid</span>
+                  <span className="font-bold text-green-600">₹{order.total_amount}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Action Button */}
+            <Button 
+              onClick={() => {
+                setShowDeliveredModal(false);
+                navigate('/menu');
+              }}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 animate-bounce-in"
+            >
+              Yay! Thank You! 🎉
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Modern Order Cancelled Modal */}
       <Dialog open={showCancelledModal} onOpenChange={(open) => setShowCancelledModal(open)}>
         <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
