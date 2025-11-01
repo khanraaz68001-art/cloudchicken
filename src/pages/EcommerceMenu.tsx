@@ -55,10 +55,6 @@ interface CartItem {
   weight_kg: number;
 }
 
-interface StockSummary {
-  available_weight_kg: number;
-}
-
 const EcommerceMenu = () => {
   const { userProfile, user, refreshUserProfile } = useAuth();
   const location = useLocation();
@@ -69,7 +65,6 @@ const EcommerceMenu = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [stockSummary, setStockSummary] = useState<StockSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -322,10 +317,10 @@ const EcommerceMenu = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch categories and products
       await Promise.all([
         fetchCategories(),
-        fetchProducts(),
-        fetchStockSummary()
+        fetchProducts()
       ]);
     } catch (error: any) {
       setError(error.message);
@@ -367,7 +362,7 @@ const EcommerceMenu = () => {
         try {
           const { data, error } = await supabase
             .from('products_with_image')
-            .select(`*, product_categories (name)`)
+            .select(`*`)
             .eq('is_available', true)
             .order('sort_order', { ascending: true });
 
@@ -385,7 +380,7 @@ const EcommerceMenu = () => {
       // fallback: ensure we request image_base64 and image_mime if available
       const { data: fallbackData, error: fallbackErr } = await supabase
         .from('products')
-        .select(`*, product_categories (name), image_base64, image_mime`)
+        .select(`*, image_base64, image_mime`)
         .eq('is_available', true)
         .order('sort_order', { ascending: true });
 
@@ -395,16 +390,6 @@ const EcommerceMenu = () => {
     } finally {
       setProductsLoading(false);
     }
-  };
-
-  const fetchStockSummary = async () => {
-    const { data, error } = await supabase
-      .from('stock_summary')
-      .select('available_weight_kg')
-      .single();
-    
-    if (error) throw error;
-    setStockSummary(data);
   };
 
   const filterProducts = () => {
@@ -616,8 +601,6 @@ const EcommerceMenu = () => {
       setError("Please login to place order");
       return;
     }
-
-    // NOTE: Accept orders regardless of stock. We intentionally skip blocking on stockSummary.
 
     try {
       setOrderLoading(true);
@@ -831,7 +814,9 @@ const EcommerceMenu = () => {
                   )}
                   <div>
                     <h3 className="font-semibold">{selectedProduct.name}</h3>
-                    <p className="text-sm text-gray-600">{selectedProduct.product_categories?.name}</p>
+                    <p className="text-sm text-gray-600">
+                      {categories.find(cat => cat.id === selectedProduct.category_id)?.name || 'Uncategorized'}
+                    </p>
                     <p className="text-lg font-bold text-green-600">₹{selectedProduct.base_price_per_kg}/kg</p>
                   </div>
                 </div>
@@ -940,6 +925,15 @@ const EcommerceMenu = () => {
               <div>
                 <Label>Special instructions (optional)</Label>
                 <Input value={specialInstructions} onChange={(e) => setSpecialInstructions(e.target.value)} placeholder="e.g. leave at gate" />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <div className="text-blue-600 font-semibold text-sm">💰 Payment Method</div>
+                </div>
+                <div className="text-sm text-blue-700 mt-1">
+                  This order is <strong>Cash on Delivery (COD)</strong>. Payment will be collected at the time of delivery.
+                </div>
               </div>
 
               <div>

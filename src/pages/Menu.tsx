@@ -615,6 +615,15 @@ const Menu = () => {
                       </div>
                     )}
 
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="text-blue-600 font-semibold text-sm">💰 Payment Method</div>
+                      </div>
+                      <div className="text-sm text-blue-700 mt-1">
+                        This order is <strong>Cash on Delivery (COD)</strong>. Payment will be collected at the time of delivery.
+                      </div>
+                    </div>
+
                     <Button 
                       type="submit" 
                       className="w-full" 
