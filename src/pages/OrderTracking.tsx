@@ -103,6 +103,7 @@ const OrderTracking = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [deliveredOrder, setDeliveredOrder] = useState<Order | null>(null);
   const [previousOrderStatuses, setPreviousOrderStatuses] = useState<Map<string, string>>(new Map());
+  const [cancelDialogOpen, setCancelDialogOpen] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (user) {
@@ -137,6 +138,24 @@ const OrderTracking = () => {
       };
     }
   }, [user]);
+
+  // Force close modal when order is cancelled
+  useEffect(() => {
+    const handleOrderCancelled = (event: CustomEvent) => {
+      const cancelledOrderId = event.detail?.orderId;
+      // If the currently viewed order is the one that was cancelled, close the modal
+      if (selectedOrder?.id === cancelledOrderId) {
+        setModalOpen(false);
+        setSelectedOrder(null);
+      }
+    };
+
+    window.addEventListener('order_cancelled', handleOrderCancelled as EventListener);
+    
+    return () => {
+      window.removeEventListener('order_cancelled', handleOrderCancelled as EventListener);
+    };
+  }, [selectedOrder?.id]);
 
   const fetchOrders = async () => {
     try {
@@ -203,6 +222,15 @@ const OrderTracking = () => {
   };
 
   const cancelOrder = async (orderId: string) => {
+    // Close the cancel dialog immediately
+    setCancelDialogOpen(prev => ({ ...prev, [orderId]: false }));
+    
+    // Close the order details modal if it's open for this order
+    if (selectedOrder?.id === orderId) {
+      setModalOpen(false);
+      setSelectedOrder(null);
+    }
+    
     try {
       setLoading(true);
       // re-check status to prevent cancelling if it's out for delivery
@@ -226,13 +254,10 @@ const OrderTracking = () => {
 
       // notify listeners
       try { window.dispatchEvent(new CustomEvent('order_cancelled', { detail: { orderId } })); } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent('order_modal_close')); } catch (e) {}
 
-      // refresh
+      // refresh orders list
       await fetchOrders();
-      await fetchOrderHistory(orderId);
-      // fetch updated selected order
-      const { data: updated } = await supabase.from('orders').select('*').eq('id', orderId).maybeSingle();
-      if (updated) setSelectedOrder(updated as Order);
     } catch (e: any) {
       setError(e.message || 'Failed to cancel order');
     } finally {
@@ -346,7 +371,10 @@ const OrderTracking = () => {
                         {/* Per-order controls (Cancel) placed on the card for eligible orders */}
                         <div className="flex justify-end pt-3">
                           {order.status !== 'out_for_delivery' && order.status !== 'cancelled' && order.status !== 'delivered' && (
-                            <AlertDialog>
+                            <AlertDialog 
+                              open={cancelDialogOpen[order.id] || false} 
+                              onOpenChange={(open) => setCancelDialogOpen(prev => ({ ...prev, [order.id]: open }))}
+                            >
                               <AlertDialogTrigger asChild>
                                 <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); }}>Cancel Order</Button>
                               </AlertDialogTrigger>
@@ -381,6 +409,7 @@ const OrderTracking = () => {
           <Dialog open={modalOpen} onOpenChange={(o) => {
             setModalOpen(o);
             if (!o) {
+              setSelectedOrder(null); // Clear selected order when modal closes
               try { window.dispatchEvent(new CustomEvent('order_modal_close')); } catch (e) {}
             }
           }}>

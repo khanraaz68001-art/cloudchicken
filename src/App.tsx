@@ -34,9 +34,9 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-  <PersistentOrderBar />
-  <LiveUpdates />
+        <LiveUpdates />
         <BrowserRouter>
+          <PersistentOrderBar />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/menu" element={<EcommerceMenu />} />

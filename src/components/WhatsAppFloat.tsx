@@ -11,7 +11,7 @@ function sanitizePhone(p?: string) {
 
 export default function WhatsAppFloat() {
   const [phone, setPhone] = useState<string | null>(null);
-  const [bottomOffset, setBottomOffset] = useState<number>(16);
+  const [bottomOffset, setBottomOffset] = useState<number>(20);
 
   useEffect(() => {
     let mounted = true;
@@ -27,17 +27,18 @@ export default function WhatsAppFloat() {
     return () => { mounted = false; };
   }, []);
 
-  // Adjust position when PersistentOrderBar is present or resized
+  // Adjust position when PersistentOrderBar is present
   useEffect(() => {
     const update = () => {
       const bar = document.getElementById('persistent-order-bar');
       // Only treat the bar as present if it exists and is actually visible (data-visible)
       if (!bar || bar.dataset.visible !== 'true') {
-        setBottomOffset(16);
+        setBottomOffset(20); // Safe distance from bottom
         return;
       }
       const h = Math.ceil(bar.getBoundingClientRect().height || 0);
-      setBottomOffset(h + 12);
+      // Position above the delivery bar with adequate spacing
+      setBottomOffset(h + 20);
     };
 
     update();
@@ -71,8 +72,11 @@ export default function WhatsAppFloat() {
     <button
       aria-label="Contact us on WhatsApp"
       onClick={openWhatsApp}
-      style={{ right: 16, bottom: bottomOffset, transition: 'bottom 200ms ease' }}
-      className="fixed z-50 w-12 h-12 bg-[#25D366] rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+      style={{ 
+        bottom: `${bottomOffset}px`,
+        right: '36px'
+      }}
+      className="fixed z-[60] w-12 h-12 bg-[#25D366] rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-all duration-200 border-2 border-white"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M20.52 3.48A11.94 11.94 0 0012 0C5.372 0 .12 4.85.12 11.2c0 1.97.52 3.86 1.5 5.52L0 24l7.56-1.98A11.98 11.98 0 0012 22.4c6.63 0 11.88-4.85 11.88-11.2 0-1.98-.52-3.86-1.36-5.72z" fill="#fff"/>

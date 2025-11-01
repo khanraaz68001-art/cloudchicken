@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -14,6 +15,7 @@ const labelFor = (s: string) => ({
 
 export default function PersistentOrderBar() {
   const { userProfile } = useAuth();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<any | null>(null);
 
   // UI state & refs must be declared unconditionally to preserve Hooks order
@@ -185,8 +187,9 @@ export default function PersistentOrderBar() {
   // so other components can decide whether to treat it as present.
   const hasOrder = !!order;
   const isDelivered = order?.status === 'delivered';
-  // Show cancelled orders as well — user asked to ensure cancelled orders are present
-  const isVisible = !!userProfile && hasOrder && (!isDelivered || deliveredVisible) && !modalOpen;
+  const isCancelled = order?.status === 'cancelled';
+  // Hide the bar when order is delivered (unless showing delivered animation) or cancelled
+  const isVisible = !!userProfile && hasOrder && (!isDelivered || deliveredVisible) && !isCancelled && !modalOpen;
 
   const activeIndex = Math.max(0, STATUS_SEQUENCE.indexOf(order?.status ?? 'placed'));
 
@@ -259,22 +262,71 @@ export default function PersistentOrderBar() {
           </div>
         </div>
       </div>
-      {/* Cancelled confirmation modal */}
+      {/* Modern Order Cancelled Modal */}
       <Dialog open={showCancelledModal} onOpenChange={(open) => setShowCancelledModal(open)}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+          <DialogHeader className="sr-only">
             <DialogTitle>Order Cancelled</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm">We're sorry — your order <strong>#{order?.id}</strong> was cancelled.</p>
-            <p className="text-sm">We apologize for the inconvenience. If you'd like to explain or request assistance, please reach out to us on WhatsApp.</p>
-            <div className="pt-3">
-              <p className="font-medium">We hope to make your experience better.</p>
-              <p className="text-sm text-gray-600">With regards, Cloud Chicken</p>
+
+          <div className="relative z-10 p-8 text-center">
+            {/* Cancel Icon */}
+            <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center animate-scale-in">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
             </div>
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setShowCancelledModal(false)}>Close</Button>
+
+            {/* Main Message */}
+            <h2 className="text-2xl font-bold text-orange-600 mb-2 animate-slide-up">
+              Oh No! Order was Cancelled 😔
+            </h2>
+            <p className="text-gray-600 mb-6 animate-slide-up-delay">
+              We're sorry for any inconvenience caused 💔
+            </p>
+
+            {/* Order Summary */}
+            {order && (
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 animate-fade-in">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Order ID</span>
+                  <span className="font-semibold text-gray-800">#{order.id?.slice(0, 8)}</span>
+                </div>
+                {productName && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600 text-sm">Product</span>
+                    <span className="font-semibold text-gray-800">{productName}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600 text-sm">Weight</span>
+                  <span className="font-semibold text-gray-800">{order.weight_kg}kg</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-sm">Amount</span>
+                  <span className="font-bold text-orange-600">₹{order.total_amount}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Support Message */}
+            <div className="bg-blue-50 rounded-xl p-4 mb-6 animate-fade-in">
+              <p className="text-sm text-blue-700 font-medium mb-1">💬 Need Help?</p>
+              <p className="text-xs text-blue-600">
+                Contact us on WhatsApp for assistance or to place a new order! 📱
+              </p>
             </div>
+
+            {/* Action Button */}
+            <Button 
+              onClick={() => {
+                setShowCancelledModal(false);
+                navigate('/menu');
+              }}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 animate-bounce-in"
+            >
+              Got it! 👍
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
