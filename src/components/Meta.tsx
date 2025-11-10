@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { Helmet } from 'react-helmet-async';
 
 type MetaProps = {
   title?: string;
@@ -8,36 +9,28 @@ type MetaProps = {
   keywords?: string;
 };
 
-function upsertMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
-  let el = document.querySelector(`meta[${attr}='${name}']`);
-  if (!el) {
-    el = document.createElement('meta');
-    el.setAttribute(attr, name);
-    document.head.appendChild(el);
-  }
-  el.setAttribute('content', content);
-}
-
 export default function Meta({ title, description, url, image, keywords }: MetaProps) {
-  useEffect(() => {
-    const prevTitle = document.title;
-    if (title) document.title = title;
-    if (description) upsertMeta('description', description);
-    if (keywords) upsertMeta('keywords', keywords);
-    if (url) upsertMeta('og:url', url, 'property');
-    if (title) upsertMeta('og:title', title, 'property');
-    if (description) upsertMeta('og:description', description, 'property');
-    if (image) upsertMeta('og:image', image, 'property');
-    // Twitter
-    if (title) upsertMeta('twitter:title', title);
-    if (description) upsertMeta('twitter:description', description);
-    if (image) upsertMeta('twitter:image', image);
+  const canonical = url || typeof window !== 'undefined' ? (window.location.origin + window.location.pathname + (window.location.search || '')) : undefined;
 
-    return () => {
-      // restore previous title (keep meta tags as defaults)
-      document.title = prevTitle;
-    };
-  }, [title, description, url, image, keywords]);
+  return (
+    <Helmet>
+      {title && <title>{title}</title>}
+      {description && <meta name="description" content={description} />}
+      {keywords && <meta name="keywords" content={keywords} />}
 
-  return null;
+      {/* Open Graph */}
+      {title && <meta property="og:title" content={title} />}
+      {description && <meta property="og:description" content={description} />}
+      {url && <meta property="og:url" content={url} />}
+      {image && <meta property="og:image" content={image} />}
+
+      {/* Twitter */}
+      {title && <meta name="twitter:title" content={title} />}
+      {description && <meta name="twitter:description" content={description} />}
+      {image && <meta name="twitter:image" content={image} />}
+
+      {/* Canonical */}
+      {canonical && <link rel="canonical" href={canonical} />}
+    </Helmet>
+  );
 }
