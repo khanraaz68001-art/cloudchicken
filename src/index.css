@@ -123,3 +123,16 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Prevent mobile auto-zoom on form fields and improve touch behavior */
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%; /* prevent iOS text-size adjust */
+  -ms-text-size-adjust: 100%;
+}
+
+/* Safari and other mobile browsers will auto-zoom when form controls have font-size < 16px.
+   Ensure controls are at least 16px to avoid undesired zoom on focus. */
+input, textarea, select, button {
+  font-size: 16px;
+}
