@@ -1,9 +1,15 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import Meta from '@/components/Meta';
 
 const Terms = () => {
   return (
     <div className="min-h-screen flex flex-col">
+      <Meta
+        title={`Terms of Service — Cloud Chicken`}
+        description={`Terms of service for using Cloud Chicken's website and ordering platform.`}
+        url={`https://cloudchicken.in/terms`}
+      />
       <Navbar />
 
       <main className="flex-1 container mx-auto px-4 py-16">

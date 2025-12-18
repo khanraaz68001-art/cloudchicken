@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { fetchDiscountCodes, validateCode, getActiveBanner } from '@/lib/discounts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -69,6 +70,16 @@ const EcommerceMenu = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showThankYou, setShowThankYou] = useState(false);
+  const [activeBanner, setActiveBanner] = useState<string | null>(null);
+  const [bannerVisible, setBannerVisible] = useState(true);
+  const [discountCodes, setDiscountCodes] = useState<any[]>([]);
+
+  // coupon state for cart modal
+  const [couponCode, setCouponCode] = useState('');
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  
   
   // Order form state
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -252,6 +263,37 @@ const EcommerceMenu = () => {
     };
   }, []);
 
+  useEffect(() => {
+    // load active banner for menu
+    (async () => {
+      try {
+        const b = await getActiveBanner();
+        // show banner if text available and not dismissed in session. Previously we filtered by show_on_menu;
+        // show_on_menu may be false if admin toggled it off, but ensure Menu shows any banner text by default.
+        if (b && b.text) {
+          const dismissed = sessionStorage.getItem('cloudcoop_banner_dismissed');
+          if (!dismissed) setActiveBanner(b.text);
+        }
+      } catch (e) {}
+      // load available discount codes
+      try {
+        const codes = await fetchDiscountCodes();
+        setDiscountCodes(codes || []);
+      } catch (e) { }
+    })();
+  }, []);
+
+  // When opening the Place Order dialog, clear any previously-applied coupon so the user
+  // must explicitly add a code each time.
+  useEffect(() => {
+    if (showOrderDialog) {
+      setAppliedCode(null);
+      setDiscountAmount(0);
+      setCouponCode('');
+      setCouponError(null);
+    }
+  }, [showOrderDialog]);
+
   // keep cart in sync across tabs and same-tab events
   useEffect(() => {
     const handler = () => {
@@ -403,9 +445,26 @@ const EcommerceMenu = () => {
 
   const openProductDialog = (product: Product) => {
     setSelectedProduct(product);
-    setSelectedWeight("0.5");
+    // clear selection so user must explicitly choose when opening (prevents defaulting a weight)
+    setSelectedWeight("");
     setCustomWeight("");
     setShowProductDialog(true);
+  };
+
+  const isCustomWeightTooLarge = () => {
+    if (!customWeight) return false;
+    const v = parseFloat(customWeight);
+    if (isNaN(v)) return false;
+    return v > 10;
+  };
+
+  const isWeightMissing = () => {
+    // weight missing if neither a dropdown weight nor a valid custom weight is provided
+    if (customWeight) {
+      const v = parseFloat(customWeight);
+      return isNaN(v);
+    }
+    return !selectedWeight || selectedWeight === '';
   };
 
   const addToCart = (mode?: 'cart' | 'buy') => {
@@ -413,8 +472,20 @@ const EcommerceMenu = () => {
     const weightPerPiece = customWeight ? parseFloat(customWeight) : parseFloat(selectedWeight);
 
     if (isNaN(weightPerPiece) || weightPerPiece <= 0) {
-      setError("Please enter a valid weight");
+      setError("Please select weight");
       return;
+    }
+
+    // For Buy Now with manual weight, require minimum 2.5kg
+    if ((mode === 'buy' || productDialogMode === 'buy') && customWeight) {
+      if (weightPerPiece < 2.5) {
+        setError('For Buy Now, manual weight must be at least 2.5kg');
+        return;
+      }
+      if (weightPerPiece > 10) {
+        setError('For orders over 10kg please contact us via WhatsApp');
+        return;
+      }
     }
 
     // For dialog without quantity, each Add means one piece of the chosen weight
@@ -457,6 +528,13 @@ const EcommerceMenu = () => {
     setSuccess(`Added ${selectedProduct.name} (${totalWeight.toFixed(2)}kg) to cart`);
   };
 
+  const isCustomWeightInvalid = () => {
+    if (!customWeight) return false;
+    const v = parseFloat(customWeight);
+    if (isNaN(v)) return true;
+    return v < 2.5;
+  };
+
   // Quick add helper (adds a single piece of default weight to localStorage cart and updates state)
   const addToCartQuick = (product: Product, perPieceKg = 0.5) => {
     try {
@@ -479,6 +557,29 @@ const EcommerceMenu = () => {
 
   // open cart modal instead of navigating to /cart
   const openCartModal = () => setShowCartModal(true);
+
+  const applyCoupon = async (code: string, subtotal: number) => {
+    try {
+      const codes = await fetchDiscountCodes();
+      const result = await validateCode(code, codes || [], subtotal, { userId: userProfile?.id });
+      if (!result.valid) {
+        setCouponError(result.message || 'Invalid code');
+        setDiscountAmount(0);
+        setAppliedCode(null);
+        try { localStorage.removeItem('cloudcoop_applied_coupon'); } catch (e) {}
+        return false;
+      }
+      setDiscountAmount(result.discountAmount || 0);
+      setAppliedCode(result.record?.code || code);
+      setCouponCode(result.record?.code || code);
+      try { localStorage.setItem('cloudcoop_applied_coupon', JSON.stringify({ code: result.record?.code || code, amount: result.discountAmount || 0 })); } catch (e) {}
+      setCouponError(null);
+      return true;
+    } catch (e: any) {
+      setCouponError(e?.message || 'Failed to validate coupon');
+      return false;
+    }
+  };
 
 
   const updateCartQuantity = (productId: string, change: number) => {
@@ -607,19 +708,53 @@ const EcommerceMenu = () => {
       setOrderLoading(true);
 
       // Batch insert all itemsToPlace as separate order rows and request returned ids
-      const rows = itemsToPlace.map((item) => ({
-        user_id: userProfile.id,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        weight_kg: item.weight_kg,
-        total_amount: getPriceForWeight(item.product, item.weight_kg).total,
-        delivery_address: deliveryAddress,
-        special_instructions: specialInstructions || null,
-        status: 'pending'
-      }));
+      // include discount fields if appliedCode present; discount applies to total cart amount, so distribute proportionally
+  const totalBeforeDiscount = itemsToPlace.reduce((s, it) => s + getPriceForWeight(it.product, it.weight_kg).total, 0);
+      const totalDiscount = discountAmount || 0;
+      const rows = itemsToPlace.map((item) => {
+        const itemTotal = getPriceForWeight(item.product, item.weight_kg).total;
+        // proportionally split discount by item share
+        const itemShare = totalBeforeDiscount > 0 ? (itemTotal / totalBeforeDiscount) : 0;
+        const itemDiscount = Math.round((totalDiscount * itemShare) * 100) / 100;
+        return {
+          user_id: userProfile.id,
+          product_id: item.product.id,
+          quantity: item.quantity,
+          weight_kg: item.weight_kg,
+          total_amount: Math.round((itemTotal - itemDiscount) * 100) / 100,
+          discount_code: appliedCode || null,
+          discount_amount: itemDiscount || 0,
+          delivery_address: deliveryAddress,
+          special_instructions: specialInstructions || null,
+          status: 'pending'
+        };
+      });
 
-      const { data: inserted, error } = await supabase.from('orders').insert(rows).select('id');
-      if (error) throw error;
+      let inserted: any = null;
+      // Try inserting with discount fields; if the DB schema doesn't include those columns
+      // (PostgREST returns PGRST204 / "Could not find the 'col' column"), retry without them.
+      try {
+        const res = await supabase.from('orders').insert(rows).select('id');
+  if (res.error) throw res.error;
+  inserted = res.data;
+      } catch (err: any) {
+        const msg = String(err?.message || err?.error || '');
+        const isSchemaMissing = err?.code === 'PGRST204' || /Could not find the '.+' column of 'orders' in the schema cache/i.test(msg);
+        if (isSchemaMissing) {
+          // retry without discount fields
+          const rowsNoDiscount = rows.map((r: any) => {
+            const copy = { ...r };
+            delete copy.discount_code;
+            delete copy.discount_amount;
+            return copy;
+          });
+          const res2 = await supabase.from('orders').insert(rowsNoDiscount).select('id');
+          if (res2.error) throw res2.error;
+          inserted = res2.data;
+        } else {
+          throw err;
+        }
+      }
 
       const firstInsertedId = inserted && inserted.length ? inserted[0].id : null;
 
@@ -633,6 +768,8 @@ const EcommerceMenu = () => {
       if (itemsToPlace === cart) {
         setCart([]);
         try { localStorage.removeItem('cloudcoop_cart'); window.dispatchEvent(new Event('cart_updated')); } catch (e) {}
+        // clear applied coupon after successful order
+        try { localStorage.removeItem('cloudcoop_applied_coupon'); setAppliedCode(null); setDiscountAmount(0); setCouponCode(''); } catch (e) {}
       } else {
         // bought items only — clear buyItems
         setBuyItems(null);
@@ -733,10 +870,10 @@ const EcommerceMenu = () => {
                             <div className="text-sm text-gray-600">View options in cart</div>
                           </div>
                           <div className="mt-2 grid grid-cols-2 gap-2">
-                            <Button variant="outline" size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('cart'); setShowProductDialog(true); }}>
+                            <Button variant="outline" size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('cart'); setSelectedWeight(''); setCustomWeight(''); setShowProductDialog(true); }}>
                               <span className="truncate">Cart</span>
                             </Button>
-                            <Button size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('buy'); setShowProductDialog(true); }}>
+                            <Button size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('buy'); setSelectedWeight(''); setCustomWeight(''); setShowProductDialog(true); }}>
                               <span className="truncate">Buy</span>
                             </Button>
                           </div>
@@ -766,10 +903,10 @@ const EcommerceMenu = () => {
                       <div className="text-sm text-gray-600">View options in cart</div>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('cart'); setShowProductDialog(true); }}>
+                      <Button variant="outline" size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('cart'); setSelectedWeight(''); setCustomWeight(''); setShowProductDialog(true); }}>
                         <span className="truncate">Cart</span>
                       </Button>
-                      <Button size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('buy'); setShowProductDialog(true); }}>
+                      <Button size="sm" className="flex-1 text-sm whitespace-nowrap" onClick={() => { setSelectedProduct(product); setProductDialogMode('buy'); setSelectedWeight(''); setCustomWeight(''); setShowProductDialog(true); }}>
                         <span className="truncate">Buy</span>
                       </Button>
                     </div>
@@ -837,7 +974,7 @@ const EcommerceMenu = () => {
                         </option>
                       ))}
                     </select>
-                    <div className="mt-3">
+                      <div className="mt-3">
                       <Label htmlFor="customWeight">
                         {getHigherWeightOptions(selectedProduct).length > 0 
                           ? `For weights above 2kg (${getHigherWeightOptions(selectedProduct).map(t => formatWeightDisplay(t.weight_kg)).join(', ')}) or custom weight (up to 5kg)`
@@ -856,8 +993,11 @@ const EcommerceMenu = () => {
                         type="number"
                         step="0.1"
                         min="0.1"
-                        max="5.0"
+                        max="10.0"
                       />
+                      <div className="text-xs text-gray-500 mt-1">Manual weight must be &gt;2.5kg. For &gt;10kg orders contact WhatsApp.</div>
+                      {isCustomWeightInvalid() && <div className="text-sm text-red-600 mt-1">Manual weight must be at least 2.5kg.</div>}
+                      {isCustomWeightTooLarge() && <div className="text-sm text-red-600 mt-1">For orders over 10kg please contact us via WhatsApp.</div>}
                     </div>
                   </div>
                 </div>
@@ -874,10 +1014,10 @@ const EcommerceMenu = () => {
                 </div>
                 
                 <div className="flex gap-2">
-                       <Button onClick={() => { setProductDialogMode('cart'); addToCart('cart'); }} className="flex-1">
+                       <Button onClick={() => { setProductDialogMode('cart'); addToCart('cart'); }} className="flex-1" disabled={isWeightMissing() || isCustomWeightInvalid() || isCustomWeightTooLarge()}>
                     Add to Cart
                   </Button>
-                       <Button onClick={() => { setProductDialogMode('buy'); addToCart('buy'); }} className="flex-1">
+                       <Button onClick={() => { setProductDialogMode('buy'); addToCart('buy'); }} className="flex-1" disabled={isWeightMissing() || isCustomWeightInvalid() || isCustomWeightTooLarge()}>
                     Buy Now
                   </Button>
                 </div>
@@ -935,6 +1075,38 @@ const EcommerceMenu = () => {
                 </div>
               </div>
 
+              
+
+              {/* Manual coupon input for Place Order */}
+              <div className="mt-4">
+                <Label>Have a coupon?</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input placeholder="Enter coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} />
+                  <Button onClick={async () => {
+                    const subtotal = ((buyItems && buyItems.length) ? buyItems.reduce((s,it) => s + getPriceForWeight(it.product, it.weight_kg).total, 0) : getTotalAmount());
+                    await applyCoupon(couponCode, subtotal);
+                  }}>Apply</Button>
+                </div>
+                {couponError && <div className="text-sm text-red-600 mt-2">{couponError}</div>}
+                {appliedCode && <div className="text-sm text-muted-foreground mt-2">Applied: <span className="font-medium">{appliedCode}</span> — Discount ₹{discountAmount.toFixed(2)} <Button variant="link" onClick={() => { setAppliedCode(null); setDiscountAmount(0); setCouponCode(''); setCouponError(null); try{ localStorage.removeItem('cloudcoop_applied_coupon'); }catch(e){} }}>Remove</Button></div>}
+              </div>
+
+              {/* Available coupons for quick apply */}
+              <div className="mt-4">
+                <h4 className="font-semibold mb-2">Available Coupons</h4>
+                <div className="flex gap-2 flex-wrap">
+                  {discountCodes.filter((c:any) => (c.active ?? true)).length === 0 && (
+                    <div className="text-sm text-muted-foreground">No coupons available</div>
+                  )}
+                  {discountCodes.filter((c:any) => (c.active ?? true)).map((c:any) => (
+                    <Button key={c.code} size="sm" variant="outline" onClick={async () => {
+                      const subtotal = ((buyItems && buyItems.length) ? buyItems.reduce((s,it) => s + getPriceForWeight(it.product, it.weight_kg).total, 0) : getTotalAmount());
+                      await applyCoupon(c.code, subtotal);
+                    }}>{c.code}{c.type === 'percentage' ? ` (${c.amount}%)` : ` (₹${c.amount})`}</Button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <h4 className="font-semibold">Items</h4>
                 <div className="space-y-2 mt-2">
@@ -950,10 +1122,30 @@ const EcommerceMenu = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between font-bold">
-                <div>Total</div>
-                <div>₹{(((buyItems && buyItems.length) ? buyItems : cart).reduce((s, it) => s + getPriceForWeight(it.product, it.weight_kg).total, 0)).toFixed(2)}</div>
-              </div>
+              {/* Totals */}
+              {(() => {
+                const items = ((buyItems && buyItems.length) ? buyItems : cart);
+                const subtotal = items.reduce((s, it) => s + getPriceForWeight(it.product, it.weight_kg).total, 0);
+                const finalTotal = Math.max(0, subtotal - (discountAmount || 0));
+                return (
+                  <div className="space-y-1 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <div>Subtotal</div>
+                      <div>₹{subtotal.toFixed(2)}</div>
+                    </div>
+                    {appliedCode && (
+                      <div className="flex justify-between text-sm text-green-700">
+                        <div>Discount ({appliedCode})</div>
+                        <div>- ₹{(discountAmount || 0).toFixed(2)}</div>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold">
+                      <div>Total</div>
+                      <div>₹{finalTotal.toFixed(2)}</div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => { setShowOrderDialog(false); setBuyItems(null); }}>Cancel</Button>
@@ -1060,10 +1252,27 @@ const EcommerceMenu = () => {
                 <div className="text-center text-sm text-muted-foreground">Cart is empty</div>
               ) : (
                 cart.map(item => (
-                  <div key={item.product.id} className="flex items-center justify-between border-b py-2">
-                    <div>
-                      <div className="font-medium">{item.product.name}</div>
-                      <div className="text-sm text-gray-600">{item.quantity}x • {formatWeightDisplay(item.weight_kg)}</div>
+                  <div key={item.product.id} className="flex items-center justify-between border-b py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+                        {item.product.image_url ? (
+                          <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
+                        ) : item.product.image_base64 ? (
+                          <img src={`data:${item.product.image_mime || 'image/jpeg'};base64,${item.product.image_base64}`} alt={item.product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-gray-400">No image</div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{item.product.name}</div>
+                        <div className="text-sm text-gray-600">{item.quantity}x • {formatWeightDisplay(item.weight_kg)}</div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Button size="icon" variant="outline" onClick={() => updateCartQuantity(item.product.id, -1)}>-</Button>
+                          <div className="text-sm px-2">{item.quantity}</div>
+                          <Button size="icon" variant="outline" onClick={() => updateCartQuantity(item.product.id, 1)}>+</Button>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeFromCart(item.product.id)}><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></Button>
+                        </div>
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className="font-semibold">₹{getPriceForWeight(item.product, item.weight_kg).total.toFixed(2)}</div>
@@ -1074,13 +1283,17 @@ const EcommerceMenu = () => {
 
                   {cart.length > 0 && (
                     <div className="pt-4 border-t">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="text-sm font-medium">Total</div>
-                        <div className="text-lg font-bold">₹{getTotalAmount().toFixed(2)}</div>
-                      </div>
-                        <div className="flex gap-2">
-                        <Button variant="outline" className="flex-1" onClick={() => { try { localStorage.removeItem('cloudcoop_cart'); setCart([]); window.dispatchEvent(new Event('cart_updated')); } catch(e){} }}>Clear</Button>
-                        <Button className="flex-1" onClick={() => { setShowCartModal(false); if (!userProfile?.id) { navigate('/login'); return; } setShowOrderDialog(true); }}>Buy Now</Button>
+                      <div className="space-y-3">
+                        <div className="pt-2 border-t">
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="text-sm font-medium">Total</div>
+                            <div className="text-lg font-bold">₹{Math.max(0, getTotalAmount() - (discountAmount || 0)).toFixed(2)}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" className="flex-1" onClick={() => { try { localStorage.removeItem('cloudcoop_cart'); setCart([]); window.dispatchEvent(new Event('cart_updated')); } catch(e){} }}>Clear</Button>
+                            <Button className="flex-1" onClick={() => { setShowCartModal(false); if (!userProfile?.id) { navigate('/login'); return; } setShowOrderDialog(true); }}>Buy Now</Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

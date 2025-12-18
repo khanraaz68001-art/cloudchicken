@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Meta from '@/components/Meta';
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import OrderProgress from "@/components/OrderProgress";
@@ -12,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
+import { fetchDiscountCodes, validateCode, getActiveBanner } from '@/lib/discounts';
 
 interface Product {
   id: string;
@@ -85,6 +87,9 @@ const Menu = () => {
 
   const [addressDraft, setAddressDraft] = useState<AddressDraft>(parseProfileAddress(userProfile?.address));
   const [saveAsDefault, setSaveAsDefault] = useState(true);
+  const [activeBanner, setActiveBanner] = useState<string | null>(null);
+  const [bannerVisible, setBannerVisible] = useState(true);
+  const [couponFromStorage, setCouponFromStorage] = useState<{ code: string; amount: number } | null>(null);
 
   useEffect(() => {
     // Try to show cached products quickly while we fetch fresh data
@@ -161,6 +166,30 @@ const Menu = () => {
     const onUpdate = () => read();
     window.addEventListener('cart_updated', onUpdate);
     return () => window.removeEventListener('cart_updated', onUpdate);
+  }, []);
+
+  useEffect(() => {
+    // load active banner
+    (async () => {
+      try {
+        const banner = await getActiveBanner();
+        if (banner && banner.show_on_menu && banner.text) {
+          // check if dismissed in this session
+          const dismissed = sessionStorage.getItem('cloudcoop_banner_dismissed');
+          if (!dismissed) {
+            setActiveBanner(banner.text);
+            setBannerVisible(true);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      // load any applied coupon from localStorage so single checkout can use it
+      try {
+        const raw = localStorage.getItem('cloudcoop_applied_coupon');
+        if (raw) setCouponFromStorage(JSON.parse(raw));
+      } catch (e) {}
+    })();
   }, []);
 
   // using DB-backed address from user_profiles.address instead of localStorage
@@ -253,21 +282,69 @@ const Menu = () => {
   if (!selectedProduct) throw new Error("Please select a product");
 
   const weight = parseFloat(orderForm.weight_kg);
-  const totalAmount = calculatePrice(selectedProduct, weight);
+    let totalAmount = calculatePrice(selectedProduct, weight);
+
+    // Apply any coupon persisted from cart (single-item checkout should respect applied coupon)
+    let appliedCouponCode: string | null = null;
+    let appliedDiscountAmount = 0;
+    try {
+      const raw = localStorage.getItem('cloudcoop_applied_coupon');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { code: string; amount: number };
+        // validate it against current codes to ensure still active
+        const codes = await fetchDiscountCodes();
+        const validation = await validateCode(parsed.code, codes || [], totalAmount, { userId: user?.id });
+        if (validation.valid) {
+          appliedDiscountAmount = validation.discountAmount || 0;
+          appliedCouponCode = validation.record?.code || parsed.code;
+          totalAmount = Math.max(0, Math.round((totalAmount - appliedDiscountAmount) * 100) / 100);
+        } else {
+          // invalid: remove stored coupon
+          localStorage.removeItem('cloudcoop_applied_coupon');
+        }
+      }
+    } catch (e) { /* ignore coupon errors */ }
 
       // Try creating the order normally and return the new row
-      const { data: insertedData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
+      // Try inserting with discount fields (if DB has them). If it fails, retry without discount fields.
+      let insertedData: any = null;
+      let orderError: any = null;
+      try {
+        const payload: any = {
           user_id: user.id,
           product_id: selectedProduct.id,
           weight_kg: weight,
           total_amount: totalAmount,
           delivery_address: orderForm.address,
           status: 'pending'
-        })
-        .select()
-        .single();
+        };
+        if (appliedCouponCode) {
+          payload.discount_code = appliedCouponCode;
+          payload.discount_amount = appliedDiscountAmount;
+        }
+        const res = await supabase.from('orders').insert(payload).select().single();
+        insertedData = res.data;
+        orderError = res.error;
+        if (orderError) throw orderError;
+      } catch (err) {
+        // retry without discount fields if first attempt failed
+        try {
+          const { data: retryData, error: retryErr } = await supabase.from('orders').insert({
+            user_id: user.id,
+            product_id: selectedProduct.id,
+            weight_kg: weight,
+            total_amount: totalAmount,
+            delivery_address: orderForm.address,
+            status: 'pending'
+          }).select().single();
+          insertedData = retryData;
+          orderError = retryErr;
+          if (orderError) throw orderError;
+        } catch (retryEx) {
+          // forward original error
+          throw err;
+        }
+      }
 
       // If a stock-related error occurs on the server (some DB setups block orders when stock is 0),
       // retry with a server-side FORCE RPC that inserts the order regardless of stock checks.
@@ -311,6 +388,9 @@ const Menu = () => {
         address: orderForm.address
       });
 
+      // If coupon was applied for single checkout, clear it after successful order
+      try { if (appliedCouponCode) localStorage.removeItem('cloudcoop_applied_coupon'); } catch (e) {}
+
       // if user chose to save address via modal earlier, persist it now
       if (saveAsDefault && user && orderForm.address) {
         try {
@@ -339,10 +419,17 @@ const Menu = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Meta
+        title={`Order Fresh Chicken Online — Menu | Cloud Chicken`}
+        description={`Browse our menu of fresh chicken cuts and products. Fast home delivery across Dibrugarh.`}
+        url={`https://cloudchicken.in/menu`}
+        image={`https://cloudchicken.in/src/assets/hero-chicken.jpg`}
+        keywords={`buy chicken online, chicken delivery, fresh chicken dibrugarh`}
+      />
       <Navbar />
       
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8">
+  <div className="container mx-auto px-4 py-8 site-animate">
           {/* Dev verification banner (only shown in development) */}
           {process.env.NODE_ENV === 'development' && (
             <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded text-sm text-yellow-800 text-center">
@@ -352,6 +439,17 @@ const Menu = () => {
 
           {/* Cart summary at top */}
           <div className="mb-6">
+            {/* Active discount/banner from admin */}
+            {activeBanner && bannerVisible && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200 rounded text-sm text-yellow-900 text-center pop-animate">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-sm font-medium">{activeBanner}</div>
+                  <div>
+                    <Button variant="ghost" size="sm" onClick={() => { setBannerVisible(false); try { sessionStorage.setItem('cloudcoop_banner_dismissed', '1'); } catch (e) {} }}>Dismiss</Button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="p-3 bg-white rounded shadow flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium">Cart</div>

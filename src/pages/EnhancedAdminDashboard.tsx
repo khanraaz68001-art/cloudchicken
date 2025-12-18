@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchDiscountCodes, createDiscountCode, getActiveBanner, setActiveBanner, DiscountRecord } from '@/lib/discounts';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +50,15 @@ const EnhancedAdminDashboard = () => {
   const [supportEmail, setSupportEmail] = useState('');
   const [supportLocation, setSupportLocation] = useState('');
   const [supportLocationEmbed, setSupportLocationEmbed] = useState('');
+  // Landing page settings
+  const [landingEnabled, setLandingEnabled] = useState(false);
+  const [landingDate, setLandingDate] = useState('');
+  const [landingMessageSetting, setLandingMessageSetting] = useState('');
+  // Discounts
+  const [discountCodes, setDiscountCodes] = useState<DiscountRecord[]>([]);
+  const [newDiscount, setNewDiscount] = useState<any>({ code: '', type: 'percentage', amount: '', description: '', active: true, scope: 'always', start_at: '', end_at: '' });
+  const [bannerText, setBannerText] = useState('');
+  const [bannerShowOnMenu, setBannerShowOnMenu] = useState(true);
 
   // Stock management has been removed — admin focuses on categories and products
 
@@ -91,6 +101,13 @@ const EnhancedAdminDashboard = () => {
         fetchCategories(),
         fetchProducts()
       ]);
+      // load discounts
+      try {
+        const codes = await fetchDiscountCodes();
+        setDiscountCodes(codes || []);
+      } catch (e) {
+        console.warn('Failed to load discount codes', e);
+      }
       // load support whatsapp number
       try {
         const support = await getAppSetting('support_whatsapp');
@@ -105,6 +122,28 @@ const EnhancedAdminDashboard = () => {
       } catch (e) {
         console.warn('Failed to load support_email setting', e);
       }
+      // load active banner
+      try {
+        const active = await getActiveBanner();
+        if (active) {
+          setBannerText(active.text || '');
+          setBannerShowOnMenu(!!active.show_on_menu);
+        }
+      } catch (e) {
+        console.warn('Failed to load active banner', e);
+      }
+
+      // load landing page settings
+      try {
+        const enabled = await getAppSetting('landing_enabled');
+        const date = await getAppSetting('landing_date');
+        const message = await getAppSetting('landing_message');
+        setLandingEnabled(enabled === 'true');
+        setLandingDate(date || '');
+        setLandingMessageSetting(message || '');
+      } catch (e) {
+        console.warn('Failed to load landing settings', e);
+      }
 
       try {
         const loc = await getAppSetting('support_location');
@@ -118,6 +157,16 @@ const EnhancedAdminDashboard = () => {
         if (embed) setSupportLocationEmbed(embed);
       } catch (e) {
         console.warn('Failed to load support_location_embed setting', e);
+      }
+      // load active banner
+      try {
+        const banner = await getActiveBanner();
+        if (banner) {
+          setBannerText(banner.text || '');
+          setBannerShowOnMenu(banner.show_on_menu ?? true);
+        }
+      } catch (e) {
+        console.warn('Failed to load active discount banner', e);
       }
     } catch (error: any) {
       setError(error.message);
@@ -440,6 +489,11 @@ const EnhancedAdminDashboard = () => {
   if (supportLocation.trim()) ops.push(setAppSetting('support_location', supportLocation.trim()));
   if (supportLocationEmbed.trim()) ops.push(setAppSetting('support_location_embed', supportLocationEmbed.trim()));
 
+      // landing page settings
+      ops.push(setAppSetting('landing_enabled', landingEnabled ? 'true' : 'false'));
+      if (landingDate && landingDate.trim()) ops.push(setAppSetting('landing_date', landingDate.trim()));
+      if (landingMessageSetting && landingMessageSetting.trim()) ops.push(setAppSetting('landing_message', landingMessageSetting.trim()));
+
       await Promise.all(ops);
       setSuccess('Support settings saved');
     } catch (err: any) {
@@ -515,6 +569,25 @@ const EnhancedAdminDashboard = () => {
                 <p className="text-xs text-gray-500 mt-1">If provided, clicking the location in the footer will open this embedded map. Admin-only field; paste the full &lt;iframe&gt; HTML from Google Maps.</p>
               </div>
 
+              <div className="mt-4 p-4 border rounded">
+                <h4 className="font-semibold mb-2">Coming Soon / Landing Page</h4>
+                <div className="flex items-center gap-2 mb-2">
+                  <input id="landingEnabled" type="checkbox" checked={landingEnabled} onChange={(e) => setLandingEnabled(e.target.checked)} />
+                  <Label htmlFor="landingEnabled">Enable landing (Coming Soon) page</Label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Launch Date & Time</Label>
+                    <Input type="datetime-local" value={landingDate} onChange={(e) => setLandingDate(e.target.value)} />
+                    <p className="text-xs text-gray-500 mt-1">When enabled, the site root will show the coming-soon page and countdown to this timestamp (local time).</p>
+                  </div>
+                  <div>
+                    <Label>Short message (optional)</Label>
+                    <Input placeholder="e.g. New website launching soon" value={landingMessageSetting} onChange={(e) => setLandingMessageSetting(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
             <div className="flex gap-2 justify-end">
               <Button onClick={saveSupportSettings} disabled={loading}>Save Support Settings</Button>
             </div>
@@ -534,16 +607,20 @@ const EnhancedAdminDashboard = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="categories" className="flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" />
-                Categories
-              </TabsTrigger>
-              <TabsTrigger value="products" className="flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                Products
-              </TabsTrigger>
-            </TabsList>
+          <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="categories" className="flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4" />
+                  Categories
+                </TabsTrigger>
+                <TabsTrigger value="products" className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  Products
+                </TabsTrigger>
+                <TabsTrigger value="discounts" className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Discounts
+                </TabsTrigger>
+              </TabsList>
 
           {/* Categories Tab */}
           <TabsContent value="categories" className="space-y-6">
@@ -639,6 +716,178 @@ const EnhancedAdminDashboard = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* Discounts Tab */}
+          <TabsContent value="discounts" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Discount Codes</h2>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <Label>Code</Label>
+                  <Input value={newDiscount.code} onChange={(e) => setNewDiscount(prev => ({ ...prev, code: e.target.value }))} placeholder="e.g. WELCOME10" />
+                </div>
+
+                <div>
+                  <Label>Type</Label>
+                  <Select value={String(newDiscount.type)} onValueChange={(val) => setNewDiscount(prev => ({ ...prev, type: (val as any) }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage</SelectItem>
+                      <SelectItem value="flat">Flat (₹)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Amount</Label>
+                  <Input type="number" value={String(newDiscount.amount)} onChange={(e) => setNewDiscount(prev => ({ ...prev, amount: e.target.value }))} placeholder="10" />
+                </div>
+
+                <div>
+                  <Label>Description (optional)</Label>
+                  <Textarea value={newDiscount.description} onChange={(e) => setNewDiscount(prev => ({ ...prev, description: e.target.value }))} />
+                </div>
+
+                <div>
+                  <Label>Validity</Label>
+                  <Select value={newDiscount.scope} onValueChange={(val) => setNewDiscount(prev => ({ ...prev, scope: val }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="always">Always (no restriction)</SelectItem>
+                      <SelectItem value="first_time">First-time orders only</SelectItem>
+                      <SelectItem value="date_range">Date / Time range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {newDiscount.scope === 'date_range' && (
+                  <div>
+                    <Label>Start (date & time)</Label>
+                    <Input type="datetime-local" value={newDiscount.start_at} onChange={(e) => setNewDiscount(prev => ({ ...prev, start_at: e.target.value }))} />
+                    <Label className="mt-2">End (date & time)</Label>
+                    <Input type="datetime-local" value={newDiscount.end_at} onChange={(e) => setNewDiscount(prev => ({ ...prev, end_at: e.target.value }))} />
+                    <div className="text-xs text-muted-foreground mt-1">If set, the code will only be valid between these timestamps (local time).</div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input id="activeToggle" type="checkbox" checked={!!newDiscount.active} onChange={(e) => setNewDiscount(prev => ({ ...prev, active: e.target.checked }))} />
+                  <Label htmlFor="activeToggle">Active</Label>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={async () => {
+                    setLoading(true);
+                    setError('');
+                    try {
+                      if (!newDiscount.code) throw new Error('Enter a code');
+                      // coerce amount to number
+                      const payload: any = { ...newDiscount, amount: Number(newDiscount.amount) };
+                      // Normalize empty strings to null
+                      if (!payload.start_at) payload.start_at = null;
+                      if (!payload.end_at) payload.end_at = null;
+                      const res = await createDiscountCode(payload);
+                      if (!res.success) throw new Error(res.message || 'Failed to create');
+                      setSuccess('Discount code created');
+                      // refresh list
+                      const codes = await fetchDiscountCodes();
+                      setDiscountCodes(codes || []);
+                      setNewDiscount({ code: '', type: 'percentage', amount: '', description: '', active: true, scope: 'always', start_at: '', end_at: '' });
+                    } catch (err: any) {
+                      setError(err?.message || String(err));
+                    } finally {
+                      setLoading(false);
+                      setTimeout(() => setSuccess(''), 2500);
+                    }
+                  }} disabled={loading}>Create Code</Button>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Active Banner (Menu / Landing)</h3>
+                <div className="space-y-3">
+                  <div>
+                    <Label>Banner Text</Label>
+                    <Input value={bannerText} onChange={(e) => setBannerText(e.target.value)} placeholder="e.g. Flat 10% off on your first order" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input id="bannerShow" type="checkbox" checked={bannerShowOnMenu} onChange={(e) => setBannerShowOnMenu(e.target.checked)} />
+                    <Label htmlFor="bannerShow">Show on Menu</Label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={async () => {
+                      setLoading(true);
+                      try {
+                        await setActiveBanner({ text: bannerText || '', show_on_menu: bannerShowOnMenu });
+                        setSuccess('Banner saved');
+                        setTimeout(() => setSuccess(''), 2500);
+                      } catch (e) {
+                        setError('Failed to save banner');
+                      } finally { setLoading(false); }
+                    }} disabled={loading}>Save Banner</Button>
+                  </div>
+
+                  <div className="mt-6">
+                    <h4 className="font-semibold mb-2">Existing Codes</h4>
+                    <div className="space-y-3">
+                      {discountCodes.length === 0 && <p className="text-sm text-muted-foreground">No codes yet</p>}
+                      {discountCodes.map((c) => (
+                        <Card key={c.id || c.code}>
+                          <CardContent className="p-3">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h5 className="font-medium">{c.code}</h5>
+                                  <Badge variant={(c.active ?? true) ? 'default' : 'secondary'}>{(c.active ?? true) ? 'Active' : 'Inactive'}</Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{c.type === 'percentage' ? `${c.amount}% off` : `₹${c.amount} off`}</p>
+                                {c.description && <p className="text-sm text-muted-foreground">{c.description}</p>}
+                                {c.scope && c.scope === 'first_time' && <p className="text-sm text-muted-foreground">Valid for first-time orders only</p>}
+                                {c.scope && c.scope === 'date_range' && (
+                                  <p className="text-sm text-muted-foreground">Valid: {c.start_at ? new Date(c.start_at).toLocaleString() : '—'} to {c.end_at ? new Date(c.end_at).toLocaleString() : '—'}</p>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-2">
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={async () => {
+                                    // toggle active state (try DB update, fallback to app setting)
+                                    try {
+                                      setLoading(true);
+                                      // try DB update
+                                      const { error } = await supabase.from('discount_codes').update({ active: !c.active }).eq('code', c.code);
+                                      if (error) {
+                                        // fallback to settings
+                                        const raw = await getAppSetting('discount_codes');
+                                        const arr = raw ? JSON.parse(raw) as any[] : [];
+                                        const updated = arr.map(a => a.code === c.code ? { ...a, active: !(a.active ?? true) } : a);
+                                        await setAppSetting('discount_codes', JSON.stringify(updated));
+                                      }
+                                      const codes = await fetchDiscountCodes();
+                                      setDiscountCodes(codes || []);
+                                    } catch (e) {
+                                      setError('Failed to update code');
+                                    } finally { setLoading(false); }
+                                  }}>{(c.active ?? true) ? 'Deactivate' : 'Activate'}</Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                  
+                </div>
+              </div>
             </div>
           </TabsContent>
 

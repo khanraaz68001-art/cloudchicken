@@ -44,7 +44,29 @@
     <meta name="msapplication-navbutton-color" content="#8B4513" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-    <link rel="canonical" href="https://cloudchicken.in/" />
+    <!-- Dynamic canonical: set per-page canonical via client-side JS for SPA routes.
+         This is a quick fix so Google sees the correct canonical for each route.
+         Long-term: implement server-rendered or per-page meta tags (react-helmet-async) for best SEO. -->
+    <script>
+      (function() {
+        try {
+          var link = document.querySelector('link[rel="canonical"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'canonical';
+            document.head.appendChild(link);
+          }
+          // Build canonical as origin + pathname + search (do not include hash)
+          var href = window.location.origin + window.location.pathname + (window.location.search || '');
+          // Normalize: keep trailing slash for root only
+          if (href.length > 1 && href.endsWith('/')) href = href.slice(0, -1);
+          link.href = href;
+        } catch (e) {
+          // fail silently; search engines will still attempt to crawl
+          console.warn('canonical script error', e);
+        }
+      })();
+    </script>
     <meta property="og:title" content="Cloud Chicken - Fresh Chicken Delivery in Dibrugarh" />
     <meta property="og:description" content="Get fresh, premium quality chicken delivered in Dibrugarh in under 2 hours. Order now from Cloud Chicken!" />
     <meta property="og:type" content="website" />

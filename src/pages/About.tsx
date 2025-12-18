@@ -2,10 +2,16 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import Meta from '@/components/Meta';
 
 const About = () => {
   return (
     <div className="min-h-screen flex flex-col">
+      <Meta
+        title={`About Cloud Chicken — Fresh Chicken Delivery in Dibrugarh`}
+        description={`Learn about Cloud Chicken, our mission to deliver fresh chicken quickly, and why customers trust us.`}
+        url={`https://cloudchicken.in/about`}
+      />
       <Navbar />
 
       <main className="flex-1 container mx-auto px-4 py-16">

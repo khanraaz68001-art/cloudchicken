@@ -14,6 +14,7 @@ type SaleRow = {
   product_name?: string | null;
   quantity?: number | null;
   created_at?: string | null;
+  order_total?: number | null;
 };
 
 export default function DailySales() {
@@ -100,6 +101,39 @@ export default function DailySales() {
         g[key].push(r as SaleRow);
       });
   setGrouped(g);
+
+  // Fetch order totals for any referenced orders so we can display per-order price and daily totals
+  try {
+    const orderIds = Array.from(new Set(d.map(r => r.order_id).filter(Boolean)));
+    if (orderIds.length > 0) {
+      const { data: ordersData, error: ordersError } = await supabase.from('orders').select('id, total_amount').in('id', orderIds as string[]);
+      if (!ordersError && ordersData) {
+        const totalsMap: Record<string, number> = {};
+        (ordersData || []).forEach((o: any) => { totalsMap[o.id] = Number(o.total_amount || 0); });
+        // annotate rows with order_total
+        d.forEach(r => {
+          if (r.order_id && totalsMap[r.order_id] !== undefined) {
+            r.order_total = totalsMap[r.order_id];
+          } else {
+            r.order_total = null;
+          }
+        });
+        // update state with annotated rows
+        setRows(d as SaleRow[]);
+        // rebuild grouped with updated rows
+        const g2: Record<string, SaleRow[]> = {};
+        d.forEach(r => {
+          const key = r.sale_date;
+          if (!g2[key]) g2[key] = [];
+          g2[key].push(r as SaleRow);
+        });
+        setGrouped(g2);
+      }
+    }
+  } catch (e) {
+    // non-fatal
+    console.warn('Failed to load order totals', e);
+  }
     } catch (e) {
       console.error('Failed to fetch daily sales', e);
     } finally {
@@ -143,6 +177,7 @@ export default function DailySales() {
                           <th className="px-4 py-3 text-left">Order ID</th>
                           <th className="px-4 py-3 text-left">Product</th>
                           <th className="px-4 py-3 text-left">Qty</th>
+                          <th className="px-4 py-3 text-left">Price</th>
                           <th className="px-4 py-3 text-left">Customer</th>
                           <th className="px-4 py-3 text-left">Created At</th>
                         </tr>
@@ -153,6 +188,7 @@ export default function DailySales() {
                             <td className="px-4 py-3">{r.order_id}</td>
                             <td className="px-4 py-3">{r.product_name}</td>
                             <td className="px-4 py-3">{r.quantity ?? '-'}</td>
+                            <td className="px-4 py-3">{r.order_total != null ? `₹${Number(r.order_total).toFixed(2)}` : '-'}</td>
                             <td className="px-4 py-3">{r.customer_name} {r.customer_phone ? `(${r.customer_phone})` : ''}</td>
                             <td className="px-4 py-3">{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</td>
                           </tr>
@@ -163,6 +199,20 @@ export default function DailySales() {
                           <td className="px-4 py-3 font-semibold">Total</td>
                           <td className="px-4 py-3" />
                           <td className="px-4 py-3 font-semibold">{totalQty}</td>
+                          <td className="px-4 py-3 font-semibold">
+                            {(() => {
+                              // Sum unique order totals for this group to avoid double counting when a single order has multiple rows
+                              const seen = new Set<string>();
+                              let revenue = 0;
+                              group.forEach(rr => {
+                                if (rr.order_id && !seen.has(rr.order_id) && (rr.order_total != null)) {
+                                  seen.add(rr.order_id);
+                                  revenue += Number(rr.order_total || 0);
+                                }
+                              });
+                              return `₹${revenue.toFixed(2)}`;
+                            })()}
+                          </td>
                           <td className="px-4 py-3" />
                           <td className="px-4 py-3" />
                         </tr>

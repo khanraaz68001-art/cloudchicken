@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Cart = () => {
   // Load cart from localStorage (same shape as in EcommerceMenu)
@@ -36,13 +37,21 @@ const Cart = () => {
     }
   }, [cartItems]);
 
+  // coupon quick-pick removed from Cart (handled in Menu/checkout)
+
   const deliveryFee = 30;
   const subtotal = cartItems.reduce((sum, item) => {
     const pricePerKg = item?.product?.base_price_per_kg ?? item?.price ?? 0;
     const amount = (item.weight_kg ?? 0) * pricePerKg;
     return sum + amount;
   }, 0);
-  const total = subtotal + deliveryFee;
+  // coupon / discount state
+  const [couponCode, setCouponCode] = React.useState('');
+  const [discountAmount, setDiscountAmount] = React.useState<number>(0);
+  const [appliedCode, setAppliedCode] = React.useState<string | null>(null);
+  const [couponError, setCouponError] = React.useState<string | null>(null);
+
+  const total = Math.max(0, (subtotal - (discountAmount || 0)) + deliveryFee);
 
   const updateQuantity = (productId?: string, change: number = 0) => {
     if (!productId) return;
@@ -154,10 +163,8 @@ const Cart = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Input placeholder="Enter coupon code" />
+                <div className="pt-4">
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1">Apply Coupon</Button>
                     <Button variant="ghost" className="flex-none" onClick={() => { try { localStorage.removeItem('cloudcoop_cart'); setCartItems([]); window.dispatchEvent(new Event('cart_updated')); } catch(e){} }}>Clear Cart</Button>
                   </div>
                 </div>

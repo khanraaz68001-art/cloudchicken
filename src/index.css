@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import a professional system font (Inter). Using Google Fonts for simplicity. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -121,6 +124,7 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
   }
 }
 
@@ -136,3 +140,99 @@ html, body {
 input, textarea, select, button {
   font-size: 16px;
 }
+
+/* Subtle site-wide animations and smoother UI transitions */
+@keyframes site-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop {
+  0% { transform: scale(.98); opacity: 0.0 }
+  60% { transform: scale(1.02); opacity: 1 }
+  100% { transform: scale(1); opacity: 1 }
+}
+
+.site-animate {
+  animation: site-fade-in 360ms cubic-bezier(.2,.9,.2,1) both;
+}
+
+.pop-animate {
+  animation: pop 420ms var(--transition-bounce) both;
+}
+
+/* Button animations */
+.btn-animate {
+  transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 260ms ease, background-color 200ms ease;
+}
+.btn-animate:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+}
+.btn-animate:active {
+  transform: translateY(-1px) scale(0.995);
+}
+
+/* Modal / dialog pop animation helper - apply to DialogContent */
+.dialog-content {
+  animation: pop 360ms var(--transition-bounce) both;
+}
+
+/* small dropdown/popover fade */
+.pop-down {
+  animation: site-fade-in 260ms cubic-bezier(.2,.9,.2,1) both;
+}
+
+/* subtle hover for interactive elements */
+.hover-lift:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+
+/* Page transition wrapper (used per-page) */
+.page-animate {
+  animation: site-fade-in 420ms cubic-bezier(.2,.9,.2,1) both;
+}
+
+/* Top fetch progress bar (shown when react-query is fetching) */
+.top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  z-index: 9999;
+  transition: width 400ms ease;
+}
+.top-progress.active {
+  width: 62%;
+  transition: width 600ms cubic-bezier(.2,.9,.2,1);
+}
+
+/* when completing, animate quickly to 100% then hide (handled by removing 'active') */
+.top-progress.complete {
+  width: 100%;
+  transition: width 220ms ease;
+}
+
+/* Apply gentle transitions to common UI primitives */
+button, .btn, .btn * {
+  transition: var(--transition-smooth);
+}
+
+.card, .card * {
+  transition: var(--transition-smooth);
+}
+
+.dialog-content, .modal, .radix-portal {
+  transition: var(--transition-smooth);
+}
+
+/* Focus ring improvement */
+input:focus, button:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(30,144,255,0.08);
+}
+
+/* Utility: subtle hover lift for cards */
+.card:hover { box-shadow: var(--shadow-hover); transform: translateY(-4px); }
+

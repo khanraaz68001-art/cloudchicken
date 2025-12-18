@@ -1,9 +1,15 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import Meta from '@/components/Meta';
 
 const Privacy = () => {
   return (
     <div className="min-h-screen flex flex-col">
+      <Meta
+        title={`Privacy Policy — Cloud Chicken`}
+        description={`Read Cloud Chicken's privacy policy to learn how we handle your personal data for orders and service improvements.`}
+        url={`https://cloudchicken.in/privacy`}
+      />
       <Navbar />
 
       <main className="flex-1 container mx-auto px-4 py-16">
