@@ -31,18 +31,19 @@ const ComingSoon: React.FC<{ targetIso?: string; message?: string }> = ({ target
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Admin Icon (top-left, subtle) */}
-      <div className="absolute top-4 left-4 z-20">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Admin Login"
-          onClick={() => navigate('/login')}
-          className="opacity-70 hover:opacity-100"
-        >
-          <Lock className="h-5 w-5" />
-        </Button>
-      </div>
+    {/* Admin Icon (desktop only) */}
+ <div className="absolute top-4 left-4 z-20 hidden md:block">
+  <Button
+    variant="ghost"
+    size="icon"
+    aria-label="Admin Login"
+    onClick={() => navigate('/login')}
+    className="opacity-70 hover:opacity-100"
+  >
+    <Lock className="h-5 w-5" />
+  </Button>
+</div>
+
 
       {/* Background */}
       <div className="absolute inset-0 z-0">
