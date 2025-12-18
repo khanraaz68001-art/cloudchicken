@@ -3,13 +3,7 @@ import { supabase } from './supabase';
 const CACHE_PREFIX = 'cloudcoop_setting_';
 
 export async function getAppSetting(key: string): Promise<string | null> {
-  try {
-    const cached = localStorage.getItem(CACHE_PREFIX + key);
-    if (cached) return cached;
-  } catch (e) {
-    // ignore localStorage errors
-  }
-
+  // Network first, cache fallback strategy
   try {
     const { data, error } = await supabase
       .from('app_settings')
@@ -17,21 +11,31 @@ export async function getAppSetting(key: string): Promise<string | null> {
       .eq('key', key)
       .limit(1);
 
-    if (error) {
-      console.error('getAppSetting error', error);
-      return null;
+    if (!error && data && data.length > 0) {
+      const value = data[0].value;
+      // Update cache
+      try {
+        if (value !== null && value !== undefined) {
+          localStorage.setItem(CACHE_PREFIX + key, value);
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
+      return value;
     }
-
-    if (!data || (Array.isArray(data) && data.length === 0)) return null;
-    const value = Array.isArray(data) ? data[0].value : (data as any).value;
-
-    try { if (value !== null && value !== undefined) localStorage.setItem(CACHE_PREFIX + key, value); } catch (e) {}
-
-    return value ?? null;
   } catch (err) {
-    console.error('getAppSetting unexpected error', err);
-    return null;
+    console.warn('getAppSetting network failed, falling back to cache', err);
   }
+
+  // Fallback to cache
+  try {
+    const cached = localStorage.getItem(CACHE_PREFIX + key);
+    if (cached) return cached;
+  } catch (e) {
+    // ignore
+  }
+
+  return null;
 }
 
 export async function setAppSetting(key: string, value: string): Promise<void> {
@@ -42,7 +46,7 @@ export async function setAppSetting(key: string, value: string): Promise<void> {
 
     if (error) throw error;
 
-    try { localStorage.setItem(CACHE_PREFIX + key, value); } catch (e) {}
+    try { localStorage.setItem(CACHE_PREFIX + key, value); } catch (e) { }
   } catch (err) {
     console.error('setAppSetting error', err);
     throw err;
@@ -50,7 +54,7 @@ export async function setAppSetting(key: string, value: string): Promise<void> {
 }
 
 export async function clearAppSettingCache(key: string) {
-  try { localStorage.removeItem(CACHE_PREFIX + key); } catch (e) {}
+  try { localStorage.removeItem(CACHE_PREFIX + key); } catch (e) { }
 }
 
 // Metrics helpers (server-backed)
