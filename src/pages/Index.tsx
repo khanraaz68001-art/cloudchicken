@@ -115,20 +115,20 @@ const Index = () => {
         image={`https://cloudchicken.in/src/assets/hero-chicken.jpg`}
         keywords={`chicken near me, fresh chicken delivery dibrugarh, cheap chicken dibrugarh, buy chicken online dibrugarh, chicken delivery assam`}
       />
-      
+
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative overflow-hidden min-h-[85vh] flex items-center">
           {/* Background Image with Overlay */}
           <div className="absolute inset-0 z-0">
-            <img 
-              src={heroImage} 
-              alt="Fresh Chicken" 
+            <img
+              src={heroImage}
+              alt="Fresh Chicken"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/85 to-background/60"></div>
           </div>
-          
+
           {/* Content */}
           <div className="container mx-auto px-4 py-20 relative z-10">
             <div className="max-w-2xl space-y-8 animate-fade-in">
@@ -153,7 +153,7 @@ const Index = () => {
                   </Button>
                 </Link>
               </div>
-              
+
               {/* Quick Stats */}
               <div className="flex flex-wrap gap-8 pt-8">
                 <div className="space-y-1">
@@ -178,7 +178,7 @@ const Index = () => {
         <section className="py-16 bg-secondary/30">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Why Choose Cloud Chicken?</h2>
-            
+
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="text-center space-y-4 p-6 rounded-xl bg-card hover:shadow-[var(--shadow-card)] transition-all">
                 <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
@@ -227,7 +227,7 @@ const Index = () => {
         <section className="py-16">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">How It Works</h2>
-            
+
             <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-2xl font-bold text-white">
@@ -273,7 +273,7 @@ const Index = () => {
                 We deliver fresh chicken to all areas in Dibrugarh at no extra cost
               </p>
             </div>
-            
+
             <Carousel className="max-w-4xl mx-auto">
               <CarouselContent>
                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
@@ -288,7 +288,7 @@ const Index = () => {
                     </div>
                   </div>
                 </CarouselItem>
-                
+
                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                   <div className="bg-card p-6 rounded-lg text-center space-y-4">
                     <MapPin className="h-12 w-12 text-primary mx-auto" />
@@ -301,7 +301,7 @@ const Index = () => {
                     </div>
                   </div>
                 </CarouselItem>
-                
+
                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                   <div className="bg-card p-6 rounded-lg text-center space-y-4">
                     <MapPin className="h-12 w-12 text-primary mx-auto" />
@@ -314,7 +314,7 @@ const Index = () => {
                     </div>
                   </div>
                 </CarouselItem>
-                
+
                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                   <div className="bg-card p-6 rounded-lg text-center space-y-4">
                     <MapPin className="h-12 w-12 text-primary mx-auto" />
@@ -328,10 +328,8 @@ const Index = () => {
                   </div>
                 </CarouselItem>
               </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
             </Carousel>
-            
+
             <div className="text-center mt-8">
               <p className="text-lg mb-4">
                 <strong>📍 Coverage:</strong> All areas within Dibrugarh city and 15km radius
@@ -375,7 +373,7 @@ const Index = () => {
               <h2 className="text-3xl font-bold text-center mb-12">
                 Frequently Asked Questions - Chicken Delivery in Dibrugarh
               </h2>
-              
+
               <Carousel className="w-full">
                 <CarouselContent>
                   <CarouselItem>
@@ -386,7 +384,7 @@ const Index = () => {
                       </p>
                     </div>
                   </CarouselItem>
-                  
+
                   <CarouselItem>
                     <div className="border border-border rounded-lg p-8 mx-2">
                       <h3 className="font-semibold text-xl mb-4 text-center">What are your delivery charges in Dibrugarh?</h3>
@@ -395,7 +393,7 @@ const Index = () => {
                       </p>
                     </div>
                   </CarouselItem>
-                  
+
                   <CarouselItem>
                     <div className="border border-border rounded-lg p-8 mx-2">
                       <h3 className="font-semibold text-xl mb-4 text-center">How fresh is the chicken you deliver?</h3>
@@ -404,7 +402,7 @@ const Index = () => {
                       </p>
                     </div>
                   </CarouselItem>
-                  
+
                   <CarouselItem>
                     <div className="border border-border rounded-lg p-8 mx-2">
                       <h3 className="font-semibold text-xl mb-4 text-center">Can I order chicken online in Dibrugarh?</h3>
@@ -413,7 +411,7 @@ const Index = () => {
                       </p>
                     </div>
                   </CarouselItem>
-                  
+
                   <CarouselItem>
                     <div className="border border-border rounded-lg p-8 mx-2">
                       <h3 className="font-semibold text-xl mb-4 text-center">Which areas do you cover in Dibrugarh?</h3>
@@ -426,7 +424,7 @@ const Index = () => {
                 <CarouselPrevious />
                 <CarouselNext />
               </Carousel>
-              
+
               <div className="text-center mt-8">
                 <p className="text-muted-foreground">
                   Have more questions? Call us at <strong>+91 8099747830</strong>

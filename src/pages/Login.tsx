@@ -16,7 +16,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -34,20 +34,20 @@ const Login = () => {
     }
 
     const { error } = await signIn(cleanNumber, password);
-    
+
     if (error) {
       setError(error);
     } else {
       navigate("/");
     }
-    
+
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
+
       <main className="flex-1 flex items-center justify-center py-12 px-4">
         <Card className="w-full max-w-md shadow-[var(--shadow-card)]">
           <CardHeader className="space-y-1">
@@ -56,7 +56,7 @@ const Login = () => {
               Login to your Cloud Chicken account
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
@@ -64,7 +64,7 @@ const Login = () => {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="phone">WhatsApp Number</Label>
                 <Input
@@ -75,7 +75,7 @@ const Login = () => {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -108,7 +108,7 @@ const Login = () => {
               </Button>
             </form>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center text-muted-foreground">
               Don't have an account?{" "}

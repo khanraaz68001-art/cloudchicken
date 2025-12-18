@@ -22,7 +22,7 @@ All colors MUST be HSL.
 
     --primary: 28 45% 42%;
     --primary-foreground: 35 30% 96%;
-    
+
     --primary-glow: 30 48% 52%;
 
     --secondary: 32 25% 85%;
@@ -42,16 +42,16 @@ All colors MUST be HSL.
     --ring: 28 45% 42%;
 
     --radius: 0.75rem;
-    
+
     /* Warm Paper Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(28 45% 42%) 0%, hsl(20 55% 50%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(35 30% 92%) 0%, hsl(32 25% 88%) 100%);
-    
+
     /* Shadows */
     --shadow-soft: 0 2px 8px hsl(28 35% 30% / 0.10);
     --shadow-card: 0 4px 16px hsl(28 35% 30% / 0.15);
     --shadow-hover: 0 8px 24px hsl(28 35% 30% / 0.20);
-    
+
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -85,7 +85,7 @@ All colors MUST be HSL.
 
     --primary: 30 48% 52%;
     --primary-foreground: 28 30% 15%;
-    
+
     --primary-glow: 32 52% 62%;
 
     --secondary: 28 20% 25%;
@@ -103,7 +103,7 @@ All colors MUST be HSL.
     --border: 28 20% 30%;
     --input: 28 20% 30%;
     --ring: 30 48% 52%;
-    
+
     --gradient-hero: linear-gradient(135deg, hsl(28 45% 32%) 0%, hsl(20 55% 40%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(28 30% 15%) 0%, hsl(28 25% 20%) 100%);
     --sidebar-background: 240 5.9% 10%;
@@ -129,32 +129,57 @@ All colors MUST be HSL.
 }
 
 /* Prevent mobile auto-zoom on form fields and improve touch behavior */
-html, body {
+html,
+body {
   touch-action: manipulation;
-  -webkit-text-size-adjust: 100%; /* prevent iOS text-size adjust */
+  -webkit-text-size-adjust: 100%;
+  /* prevent iOS text-size adjust */
   -ms-text-size-adjust: 100%;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* Safari and other mobile browsers will auto-zoom when form controls have font-size < 16px.
    Ensure controls are at least 16px to avoid undesired zoom on focus. */
-input, textarea, select, button {
+input,
+textarea,
+select,
+button {
   font-size: 16px;
 }
 
 /* Subtle site-wide animations and smoother UI transitions */
 @keyframes site-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pop {
-  0% { transform: scale(.98); opacity: 0.0 }
-  60% { transform: scale(1.02); opacity: 1 }
-  100% { transform: scale(1); opacity: 1 }
+  0% {
+    transform: scale(.98);
+    opacity: 0.0
+  }
+
+  60% {
+    transform: scale(1.02);
+    opacity: 1
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1
+  }
 }
 
 .site-animate {
-  animation: site-fade-in 360ms cubic-bezier(.2,.9,.2,1) both;
+  animation: site-fade-in 360ms cubic-bezier(.2, .9, .2, 1) both;
 }
 
 .pop-animate {
@@ -163,12 +188,14 @@ input, textarea, select, button {
 
 /* Button animations */
 .btn-animate {
-  transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 260ms ease, background-color 200ms ease;
+  transition: transform 220ms cubic-bezier(.2, .9, .2, 1), box-shadow 260ms ease, background-color 200ms ease;
 }
+
 .btn-animate:hover {
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
 }
+
 .btn-animate:active {
   transform: translateY(-1px) scale(0.995);
 }
@@ -180,15 +207,18 @@ input, textarea, select, button {
 
 /* small dropdown/popover fade */
 .pop-down {
-  animation: site-fade-in 260ms cubic-bezier(.2,.9,.2,1) both;
+  animation: site-fade-in 260ms cubic-bezier(.2, .9, .2, 1) both;
 }
 
 /* subtle hover for interactive elements */
-.hover-lift:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+}
 
 /* Page transition wrapper (used per-page) */
 .page-animate {
-  animation: site-fade-in 420ms cubic-bezier(.2,.9,.2,1) both;
+  animation: site-fade-in 420ms cubic-bezier(.2, .9, .2, 1) both;
 }
 
 /* Top fetch progress bar (shown when react-query is fetching) */
@@ -198,14 +228,15 @@ input, textarea, select, button {
   left: 0;
   height: 3px;
   width: 0%;
-  background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   z-index: 9999;
   transition: width 400ms ease;
 }
+
 .top-progress.active {
   width: 62%;
-  transition: width 600ms cubic-bezier(.2,.9,.2,1);
+  transition: width 600ms cubic-bezier(.2, .9, .2, 1);
 }
 
 /* when completing, animate quickly to 100% then hide (handled by removing 'active') */
@@ -215,24 +246,34 @@ input, textarea, select, button {
 }
 
 /* Apply gentle transitions to common UI primitives */
-button, .btn, .btn * {
+button,
+.btn,
+.btn * {
   transition: var(--transition-smooth);
 }
 
-.card, .card * {
+.card,
+.card * {
   transition: var(--transition-smooth);
 }
 
-.dialog-content, .modal, .radix-portal {
+.dialog-content,
+.modal,
+.radix-portal {
   transition: var(--transition-smooth);
 }
 
 /* Focus ring improvement */
-input:focus, button:focus, select:focus, textarea:focus {
+input:focus,
+button:focus,
+select:focus,
+textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(30,144,255,0.08);
+  box-shadow: 0 0 0 4px rgba(30, 144, 255, 0.08);
 }
 
 /* Utility: subtle hover lift for cards */
-.card:hover { box-shadow: var(--shadow-hover); transform: translateY(-4px); }
-
+.card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px);
+}
